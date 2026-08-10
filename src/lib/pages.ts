@@ -126,7 +126,7 @@ export async function getStats() {
   if (supabaseConfigured()) {
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.from('pages').select('type');
+      const { data, error } = await supabase.from('pages').select('type, status');
       if (!error) {
         const byType = (data ?? []).filter(p => p.status === 'approved').reduce<Record<string, number>>((acc, p) => {
           acc[p.type] = (acc[p.type] ?? 0) + 1;
