@@ -33,6 +33,17 @@ export interface WikiPage {
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+  series_id?: string | null;
+  tags?: string[];
+}
+
+export interface Series {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface PageSummary {

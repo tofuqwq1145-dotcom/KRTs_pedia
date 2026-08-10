@@ -61,6 +61,40 @@ as $$
   );
 $$;
 
+-- ---------- 分级（系列）目录：站主划分的档案集合 ----------
+create table if not exists public.series (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  description text default '',
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.series enable row level security;
+
+-- 任何人可读取分级
+drop policy if exists "series_read_public" on public.series;
+create policy "series_read_public" on public.series
+  for select using (true);
+
+-- 仅站主可创建 / 修改 / 删除分级
+drop policy if exists "series_insert_admin" on public.series;
+create policy "series_insert_admin" on public.series
+  for insert with check (public.is_admin());
+
+drop policy if exists "series_update_admin" on public.series;
+create policy "series_update_admin" on public.series
+  for update using (public.is_admin());
+
+drop policy if exists "series_delete_admin" on public.series;
+create policy "series_delete_admin" on public.series
+  for delete using (public.is_admin());
+
+-- 兼容已建表：给 pages 补 分级/标签 列
+alter table public.pages add column if not exists series_id uuid references public.series (id) on delete set null;
+alter table public.pages add column if not exists tags text[] not null default '{}'::text[];
+
 -- ---------- pages：维基条目（含投稿审核工作流） ----------
 create table if not exists public.pages (
   id uuid primary key default gen_random_uuid(),
@@ -92,15 +126,20 @@ drop policy if exists "pages_read_own" on public.pages;
 create policy "pages_read_own" on public.pages
   for select using (auth.uid() = author_id);
 
+-- 站主可查看任意条目（审核面板需要读取全部投稿）
+drop policy if exists "pages_read_admin" on public.pages;
+create policy "pages_read_admin" on public.pages
+  for select using (public.is_admin());
+
 -- 登录用户创建自己的条目（初始为 pending）
 drop policy if exists "pages_insert_own" on public.pages;
 create policy "pages_insert_own" on public.pages
   for insert with check (auth.uid() = author_id);
 
--- 作者可修改自己 pending / rejected 的条目
+-- 作者可修改自己的条目（含已通过的，改后需重新审核）
 drop policy if exists "pages_update_own" on public.pages;
 create policy "pages_update_own" on public.pages
-  for update using (auth.uid() = author_id and status in ('pending','rejected'));
+  for update using (auth.uid() = author_id);
 
 -- 站主可修改任意条目（通过 / 驳回 / 编辑）
 drop policy if exists "pages_update_admin" on public.pages;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 
 interface Submission {
@@ -24,6 +25,18 @@ const statusText: Record<Submission['status'], string> = {
 };
 
 export default function MySubmissions({ pages }: { pages: Submission[] }) {
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | Submission['status']>('all');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return pages.filter(p => {
+      if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+      if (!q) return true;
+      return p.title.toLowerCase().includes(q) || p.typeLabel.includes(query.trim());
+    });
+  }, [pages, query, statusFilter]);
+
   if (pages.length === 0) {
     return (
       <div className="py-16 text-center border border-archive-border bg-archive-paper">
@@ -35,24 +48,51 @@ export default function MySubmissions({ pages }: { pages: Submission[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      {pages.map(p => (
-        <div key={p.id} className="bg-archive-paper border border-archive-border p-6 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs text-archive-accent tracking-widest mb-2">{p.typeLabel}</p>
-            <h3 className="font-serif text-lg text-archive-text">{p.title}</h3>
-          </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <span className={`px-3 py-1 text-xs tracking-widest border ${statusStyle[p.status]}`}>{statusText[p.status]}</span>
-            {p.status === 'pending' && (
-              <Link href={`/submit?edit=${p.id}`} className="text-sm tracking-widest text-archive-accent hover:underline">修改</Link>
-            )}
-            {p.status === 'rejected' && (
-              <Link href={`/submit?edit=${p.id}`} className="text-sm tracking-widest text-archive-accent hover:underline">重新编辑</Link>
-            )}
-          </div>
+    <div>
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="搜索标题 / 关键词…"
+          className="flex-1 p-3 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
+        />
+        <div className="flex gap-2">
+          {(['all', 'pending', 'approved', 'rejected'] as const).map(k => (
+            <button key={k}
+              onClick={() => setStatusFilter(k)}
+              className={`px-4 py-2 text-xs tracking-widest border transition-colors ${statusFilter === k ? 'bg-archive-text text-archive-paper border-archive-text' : 'border-archive-border text-archive-muted hover:border-archive-accent'}`}>
+              {k === 'all' ? '全部' : statusText[k]}
+            </button>
+          ))}
         </div>
-      ))}
+      </div>
+
+      <p className="text-xs tracking-widest text-archive-muted mb-4">共 {filtered.length} 条</p>
+
+      {filtered.length === 0 ? (
+        <div className="py-12 text-center border border-archive-border bg-archive-paper">
+          <p className="font-serif text-xl text-archive-muted">没有匹配的记录</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(p => (
+            <div key={p.id} className="bg-archive-paper border border-archive-border p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className={`px-2 py-0.5 text-xs tracking-widest border ${statusStyle[p.status]}`}>{statusText[p.status]}</span>
+                <span className="text-xs text-archive-accent tracking-widest">{p.typeLabel}</span>
+              </div>
+              <h3 className="font-serif text-lg text-archive-text mb-4">{p.title}</h3>
+              <div className="mt-auto flex gap-3">
+                {p.status === 'approved' && <Link href={`/pages/${p.slug}`} className="text-sm tracking-widest text-archive-muted hover:text-archive-accent">查看</Link>}
+                <Link href={`/submit?edit=${p.id}`} className="text-sm tracking-widest text-archive-accent hover:underline">
+                  {p.status === 'approved' ? '编辑' : p.status === 'rejected' ? '重新编辑' : '修改'}
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

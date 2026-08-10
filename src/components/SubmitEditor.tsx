@@ -105,6 +105,9 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [slug, setSlug] = useState('');
   const [type, setType] = useState('article');
   const [body, setBody] = useState('');
+  const [seriesId, setSeriesId] = useState<string>('');
+  const [seriesList, setSeriesList] = useState<{ id: string; name: string }[]>([]);
+  const [tags, setTags] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<{ id: string; display_name?: string } | null>(null);
   const [error, setError] = useState('');
@@ -121,6 +124,9 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   useEffect(() => {
     if (!configured) return;
     const supabase = createClient();
+    supabase.from('series').select('id, name').order('sort_order', { ascending: true }).then(({ data }) => {
+      setSeriesList((data ?? []) as { id: string; name: string }[]);
+    });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { id: data.user.id, display_name: data.user.user_metadata?.display_name } : null);
       setAuthChecked(true);
@@ -137,6 +143,8 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
             setSlug(data.slug);
             setType(data.type);
             setBody(data.body);
+            setSeriesId(data.series_id ?? '');
+            setTags((data.tags ?? []).join(', '));
           }
         });
     }
@@ -189,7 +197,14 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
       const res = await fetch(editId ? `/api/pages/${editId}` : '/api/pages', {
         method: editId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), slug: slug || slugify(title), type, body, status: 'pending' }),
+        body: JSON.stringify({
+          title: title.trim(),
+          slug: slug || slugify(title),
+          type,
+          body,
+          series_id: seriesId || null,
+          tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? '提交失败');
@@ -257,25 +272,48 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
           </select>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs tracking-widest text-archive-muted">正文（Markdown）*</label>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50"
+<div>
+            <label className="block text-xs tracking-widest text-archive-muted mb-2">所属分级（可选，站长设置的目录）</label>
+            <select
+              value={seriesId}
+              onChange={e => setSeriesId(e.target.value)}
+              className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
             >
-              {uploading ? '上传中…' : '+ 上传图片'}
-            </button>
+              <option value="">不设置分级</option>
+              {seriesList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs tracking-widest text-archive-muted mb-2">标签（可选，逗号分隔，最多 8 个）</label>
             <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) onUploadImage(f); }}
+              type="text"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="例如：政治, 外交, 同盟"
+              className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
             />
           </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs tracking-widest text-archive-muted">正文（Markdown）*</label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50"
+                >
+                  {uploading ? '上传中…' : '+ 上传图片'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) onUploadImage(f); }}
+                />
+            </div>
           <textarea
             ref={textareaRef}
             value={body}

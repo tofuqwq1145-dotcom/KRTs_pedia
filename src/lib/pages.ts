@@ -6,7 +6,7 @@ import { events } from '@/data/events';
 import { wars } from '@/data/wars';
 import { buildings } from '@/data/buildings';
 import { chronicle } from '@/data/chronicle';
-import type { PageType, PageSummary, WikiPage } from '@/data/types';
+import type { PageType, PageSummary, WikiPage, Series } from '@/data/types';
 import { TYPE_LABELS } from '@/lib/labels';
 
 export { TYPE_LABELS, TYPE_ROUTES, fmtDate } from '@/lib/labels';
@@ -120,6 +120,51 @@ export async function getPageBySlug(slug: string): Promise<WikiPage | null> {
 export async function getLatestPages(limit = 4): Promise<PageSummary[]> {
   const all = await listPages('event');
   return all.slice(0, limit);
+}
+
+export async function listSeries(): Promise<Series[]> {
+  if (!supabaseConfigured()) return [];
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('series')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as Series[];
+  } catch (err) {
+    console.error('listSeries error:', err);
+    return [];
+  }
+}
+
+export async function getSeriesBySlug(slug: string): Promise<Series | null> {
+  const all = await listSeries();
+  return all.find(s => s.slug === slug) ?? null;
+}
+
+export async function getSeriesName(id: string | null | undefined): Promise<string | null> {
+  if (!id) return null;
+  const all = await listSeries();
+  return all.find(s => s.id === id)?.name ?? null;
+}
+
+export async function listPagesBySeries(seriesId: string): Promise<PageSummary[]> {
+  if (!supabaseConfigured()) return [];
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('series_id', seriesId)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return pagesToSummaries((data ?? []) as WikiPage[]);
+  } catch (err) {
+    console.error('listPagesBySeries error:', err);
+    return [];
+  }
 }
 
 export async function getStats() {

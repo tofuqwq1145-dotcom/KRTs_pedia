@@ -4,6 +4,20 @@ import type { PageType } from '@/data/types';
 
 const ALLOWED_TYPES: PageType[] = ['nation', 'person', 'event', 'war', 'building', 'chronicle', 'article'];
 
+function normalizeTags(raw?: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of raw ?? []) {
+    const tag = t.trim().replace(/^#+/, '').slice(0, 20);
+    if (tag && !seen.has(tag)) {
+      seen.add(tag);
+      out.push(tag);
+    }
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
 export async function POST(request: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -11,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '请先登录' }, { status: 401 });
   }
 
-  let payload: { title?: string; slug?: string; type?: string; body?: string };
+  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[] };
   try {
     payload = await request.json();
   } catch {
@@ -22,6 +36,7 @@ export async function POST(request: Request) {
   const slug = (payload.slug ?? '').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   const type = ALLOWED_TYPES.includes(payload.type as PageType) ? (payload.type as PageType) : 'article';
   const body = (payload.body ?? '').trim();
+  const tags = normalizeTags(payload.tags);
 
   if (!title) return NextResponse.json({ error: '标题不能为空' }, { status: 400 });
   if (!slug) return NextResponse.json({ error: '条目标识不能为空' }, { status: 400 });
@@ -43,6 +58,8 @@ export async function POST(request: Request) {
       status: 'pending',
       author_id: user.id,
       author_name: profile?.display_name || user.email?.split('@')[0] || '匿名撰稿人',
+      series_id: payload.series_id || null,
+      tags,
     })
     .select('id')
     .single();
