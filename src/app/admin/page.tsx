@@ -39,7 +39,7 @@ export default async function AdminPage() {
       <h1 className="font-serif text-4xl mb-4 text-archive-text border-b border-archive-border pb-6">审核面板（站主）</h1>
       <p className="text-sm tracking-widest text-archive-muted mb-10">逐条审查投稿，通过后内容立即公开。可在备注栏填写驳回理由。</p>
 
-      {(tabs as { key: string; label: string }[]).map(tab => {
+      {tabs.map(tab => {
         const filtered = (pages ?? []).filter(p => p.status === tab.key);
         const label = TYPE_LABELS[p.type as keyof typeof TYPE_LABELS] ?? p.type;
         const items = filtered.map(p => ({
