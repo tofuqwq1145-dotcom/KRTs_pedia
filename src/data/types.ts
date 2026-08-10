@@ -15,3 +15,32 @@ export interface Chronicle {
 }
 export interface War { id: string; name: string; }
 export interface Building { id: string; name: string; }
+
+export type PageType = 'nation' | 'person' | 'event' | 'war' | 'building' | 'chronicle' | 'article';
+export type PageStatus = 'pending' | 'approved' | 'rejected';
+
+export interface WikiPage {
+  id: string;
+  slug: string;
+  title: string;
+  type: PageType;
+  body: string;
+  status: PageStatus;
+  author_id: string;
+  author_name: string;
+  review_note: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PageSummary {
+  slug: string;
+  title: string;
+  type: PageType;
+  status: PageStatus;
+  author_name: string;
+  created_at: string;
+  excerpt: string;
+}
