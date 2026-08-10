@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { supabaseConfigured } from '@/lib/supabase/client';
+import { uploadMedia } from '@/lib/supabase/upload';
 import Markdown from '@/components/Markdown';
 
 const TYPE_OPTIONS: { value: string; label: string }[] = [
@@ -109,6 +110,10 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasBody = body.trim().length > 0;
   const preview = useMemo(() => body.slice(0, 200), [body]);
@@ -143,6 +148,35 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
       setBody(TEMPLATES[nextType] ?? TEMPLATES.default);
     }
   }, [body]);
+
+  async function onUploadImage(file: File) {
+    setUploadError('');
+    if (!user) return setUploadError('请先登录。');
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const url = await uploadMedia(supabase, 'posts', user.id, file);
+      const md = `![图片](${url})`;
+      const ta = textareaRef.current;
+      if (ta) {
+        const start = ta.selectionStart ?? body.length;
+        const end = ta.selectionEnd ?? body.length;
+        const next = body.slice(0, start) + md + body.slice(end);
+        setBody(next);
+        requestAnimationFrame(() => {
+          ta.focus();
+          ta.selectionStart = ta.selectionEnd = start + md.length;
+        });
+      } else {
+        setBody(b => (b ? b + '\n\n' + md : md));
+      }
+    } catch (e: any) {
+      setUploadError(e.message || '上传失败。');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
 
   async function onSubmit() {
     setError('');
@@ -224,15 +258,34 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs tracking-widest text-archive-muted mb-2">正文（Markdown）*</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs tracking-widest text-archive-muted">正文（Markdown）*</label>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50"
+            >
+              {uploading ? '上传中…' : '+ 上传图片'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) onUploadImage(f); }}
+            />
+          </div>
           <textarea
+            ref={textareaRef}
             value={body}
             onChange={e => setBody(e.target.value)}
             rows={18}
             placeholder={TEMPLATES.default}
             className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm leading-relaxed font-mono"
           />
-          <p className="text-xs text-archive-muted mt-2 leading-relaxed">支持 Markdown：标题、加粗、引用、列表、表格、代码块、[链接](url)。内容需经站主审核后公开。</p>
+          <p className="text-xs text-archive-muted mt-2 leading-relaxed">支持 Markdown：标题、加粗、引用、列表、表格、代码块、[链接](url)、![图片](url)。内容需经站主审核后公开。</p>
+          {uploadError && <p className="text-sm text-archive-accent mt-2">{uploadError}</p>}
         </div>
 
         {error && <p className="text-sm text-archive-accent">{error}</p>}

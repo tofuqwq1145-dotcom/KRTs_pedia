@@ -11,11 +11,20 @@ export default async function Navigation() {
   ];
 
   let user: { email?: string } | null = null;
+  let avatarUrl = '';
   if (supabaseConfigured()) {
     try {
       const supabase = createClient();
       const { data: { user: u } } = await supabase.auth.getUser();
       user = u;
+      if (u) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', u.id)
+          .maybeSingle();
+        avatarUrl = profile?.avatar_url ?? '';
+      }
     } catch {
       user = null;
     }
@@ -36,7 +45,12 @@ export default async function Navigation() {
           <span className="w-px h-5 bg-archive-border" />
           <Link href="/submit" className="text-sm tracking-widest text-archive-accent hover:underline">撰写投稿</Link>
           {user ? (
-            <Link href="/account" className="text-sm tracking-widest text-archive-text hover:text-archive-accent transition-colors">我的账号</Link>
+            <Link href="/account" className="flex items-center gap-2 text-sm tracking-widest text-archive-text hover:text-archive-accent transition-colors">
+              {avatarUrl && (
+                <img src={avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover border border-archive-border" />
+              )}
+              我的账号
+            </Link>
           ) : (
             <Link href="/auth/login" className="text-sm tracking-widest text-archive-text hover:text-archive-accent transition-colors">登录</Link>
           )}

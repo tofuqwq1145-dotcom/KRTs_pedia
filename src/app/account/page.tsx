@@ -3,6 +3,7 @@ import { supabaseConfigured } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { TYPE_LABELS } from '@/lib/pages';
 import MySubmissions from '@/components/MySubmissions';
+import AvatarUpload from '@/components/AvatarUpload';
 import Breadcrumb from '@/components/Breadcrumb';
 import type { Metadata } from 'next';
 
@@ -16,7 +17,7 @@ export default async function AccountPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, is_admin')
+    .select('display_name, avatar_url, is_admin')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -47,6 +48,7 @@ export default async function AccountPage() {
             )}
           </div>
         </div>
+        <AvatarUpload userId={user.id} avatarUrl={profile?.avatar_url ?? ''} />
         <form action="/auth/logout" method="POST" className="mt-8 pt-6 border-t border-archive-border">
           <button type="submit" className="text-sm tracking-widest text-archive-muted hover:text-archive-accent transition-colors">退出登录 →</button>
         </form>

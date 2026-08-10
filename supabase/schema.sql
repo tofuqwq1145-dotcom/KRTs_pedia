@@ -10,9 +10,13 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text default '',
+  avatar_url text default '',
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- 兼容已建表情况（若旧表没有 avatar_url 列则补上）
+alter table public.profiles add column if not exists avatar_url text default '';
 
 alter table public.profiles enable row level security;
 
