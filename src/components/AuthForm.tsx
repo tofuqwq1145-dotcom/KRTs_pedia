@@ -31,7 +31,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     const redirectTo = `${window.location.origin}/auth/callback?next=/account`;
 
     if (mode === 'register') {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -40,6 +40,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         },
       });
       if (error) setError(error.message);
+      else if (data.session) {
+        router.push('/account');
+        router.refresh();
+      }
       else setNotice('注册成功，请前往邮箱点击确认链接完成验证。');
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
