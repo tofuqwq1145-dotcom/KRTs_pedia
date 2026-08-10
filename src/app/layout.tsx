@@ -19,7 +19,7 @@ export const metadata: Metadata = {      // ← 加上 : Metadata 类型标注
     description: '记录一个正在发生的虚拟世界的历史。',
   },
   verification: {                                            // ← 新增（放 Google 验证码）
-    google: '你的谷歌验证码',                                 // ← 从 GSC 复制过来替换
+    google: 'D-6Or_UgNJbomM8NTbjF1JZfrSdtugEx1IhX5ECUUT8',                                 // ← 从 GSC 复制过来替换
   },
 };
 
