@@ -9,6 +9,7 @@
 
 # production
 /build
+/dist-mirror/
 
 # misc
 .DS_Store
