@@ -41,7 +41,6 @@ export default async function AdminPage() {
 
       {tabs.map(tab => {
         const filtered = (pages ?? []).filter(p => p.status === tab.key);
-        const label = TYPE_LABELS[p.type as keyof typeof TYPE_LABELS] ?? p.type;
         const items = filtered.map(p => ({
           id: p.id,
           title: p.title,
@@ -51,7 +50,7 @@ export default async function AdminPage() {
           created_at: p.created_at,
           status: p.status,
           review_note: p.review_note ?? '',
-          typeLabel: label,
+          typeLabel: TYPE_LABELS[p.type as keyof typeof TYPE_LABELS] ?? p.type,
         }));
         return (
           <section key={tab.key} className="mb-14">
