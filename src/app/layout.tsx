@@ -1,9 +1,26 @@
 import './globals.css';
 import Navigation from '@/components/Navigation';
+import type { Metadata } from 'next';   // ← 新增这行
 
-export const metadata = {
-  title: 'KRTPedia | KRT 中世纪数字档案馆',
-  description: '记录一个正在发生的虚拟世界的历史。',
+export const metadata: Metadata = {      // ← 加上 : Metadata 类型标注
+  metadataBase: new URL('https://krt-server.vercel.app'),   // ← 新增
+  title: {
+    default: 'KRTPedia | KRT中世纪国战服务器',             // ← 原 title 放这里
+    template: '%s | KRTPedia',                              // ← 新增模板
+  },
+  description: '记录一个正在发生的虚拟世界的历史。',         // ← 原 description
+  alternates: {                                              // ← 新增
+    canonical: '/',
+  },
+  openGraph: {                                               // ← 新增（控制社交分享预览）
+    type: 'website',
+    siteName: 'KRTPedia',
+    title: 'KRTPedia | KRT 中世纪数字档案馆',
+    description: '记录一个正在发生的虚拟世界的历史。',
+  },
+  verification: {                                            // ← 新增（放 Google 验证码）
+    google: '你的谷歌验证码',                                 // ← 从 GSC 复制过来替换
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
