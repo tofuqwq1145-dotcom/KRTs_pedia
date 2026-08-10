@@ -1,0 +1,23 @@
+import { Person } from './types';
+export const people: Person[] = [
+  { id: 'feikehuya', name: '肥科虎牙', aliases: ['科尔特凯撒', '科尔特凯撒大帝'], nationId: '暂无资料', role: '服主', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'weixing', name: '副服主丨卫星', aliases: ['KRT副服主', '卫星'], nationId: '暂无资料', role: '副服主、指令师', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'xxxnulkxxx', name: 'XxXnulkXxX', aliases: [], nationId: '暂无资料', role: '服务器管理员', status: '冷淡', motto: '暂无资料', category: '核心人物' },
+  { id: 'fannaodedaxia', name: '烦恼的大虾', aliases: ['PRAWN', '大虾'], nationId: '俄罗斯', role: '俄罗斯首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'heijin', name: '黑金', aliases: ['人'], nationId: '普鲁士', role: '普鲁士首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'mingshen', name: '铭神', aliases: [], nationId: '意大利', role: '意大利首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'ruanqq2', name: '软QQ2', aliases: ['软Q'], nationId: '英格兰', role: '英格兰首领', status: '冷淡', motto: '暂无资料', category: '核心人物' },
+  { id: 'chuanchen', name: '川尘', aliases: ['川尘很忙'], nationId: '奥地利', role: '奥地利首领、代理英格兰首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'shiluoji', name: '识逻辑的威慑计划', aliases: ['伟大的革命精神', '逻辑'], nationId: '芬兰', role: '芬兰首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'xiaojiu', name: '小玖', aliases: ['忱小惟'], nationId: '瑞典', role: '瑞典首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'kedaya', name: '可达鸭', aliases: [], nationId: '丹麦', role: '暂无资料', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'langhuangyalong', name: '狼皇亚龙', aliases: [], nationId: '法兰西', role: '法兰西首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'kachibode', name: '咔驰伯德', aliases: ['Kachibode', 'Kachi'], nationId: '奥斯曼', role: '奥斯曼首领', status: '活跃', motto: '暂无资料', category: '核心人物' },
+  { id: 'xieweibolao', name: '楔尾伯劳5467', aliases: ['CuO'], nationId: '丹麦', role: '丹麦副首领', status: '活跃', motto: '法兰西牛逼、勒克莱尔AZUR牛逼、勒克莱尔S1牛逼、勒克莱尔S2牛逼、勒克莱尔SXXI牛逼。', category: '重要人物' },
+  { id: 'baiqi', name: '白起', aliases: ['白起夫人家的吗'], nationId: '俄罗斯', role: '俄罗斯副首领', status: '活跃', motto: '暂无资料', category: '重要人物' },
+  { id: 'hansi', name: '汉斯', aliases: [], nationId: '俄罗斯', role: '俄罗斯外交官', status: '活跃', motto: '暂无资料', category: '重要人物' },
+  { id: 'meilin', name: '梅林_肖某', aliases: ['Merlin.'], nationId: '俄罗斯', role: '俄罗斯建筑师', status: '活跃', motto: '暂无资料', category: '重要人物' },
+  { id: 'shitou', name: '石头', aliases: ['红温的石头'], nationId: '俄罗斯', role: '俄罗斯矿物管理部长', status: '活跃', motto: '暂无资料', category: '重要人物' },
+  { id: 'dianya', name: '典雅的本督', aliases: ['典雅的笨猪'], nationId: '未知', role: '未知', status: '活跃', motto: '暂无资料', category: '一般人物' },
+  { id: 'jishen', name: '鸡神', aliases: ['鸡神山村'], nationId: '未知', role: '未知', status: '活跃', motto: '暂无资料', category: '一般人物' },
+];
