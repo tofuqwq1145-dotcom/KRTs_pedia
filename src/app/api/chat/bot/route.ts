@@ -41,6 +41,8 @@ const RECORD_TOOL = {
         slug: { type: 'string', description: '词条唯一标识，英文小写连字符，例如 new-star-2026' },
         type: { type: 'string', enum: ALLOWED_TYPES, description: '词条类型' },
         body: { type: 'string', description: '词条正文，markdown 格式，从对话中整理出的内容' },
+        theme_id: { type: ['string', 'null'], description: '可选，已过审版式的 id，列表在用户上下文提示中给出；不确定时填 null' },
+        series_id: { type: ['string', 'null'], description: '可选，系列的 id，列表在用户上下文提示中给出；不确定时填 null' },
       },
       required: ['title', 'slug', 'type', 'body'],
     },
@@ -71,6 +73,8 @@ interface RecordArgs {
   slug?: string;
   type?: string;
   body?: string;
+  theme_id?: string | null;
+  series_id?: string | null;
 }
 
 export async function POST() {
@@ -129,6 +133,13 @@ export async function POST() {
       .map(m => `${m.author_name}: ${m.content}`)
       .join('\n');
 
+    const [{ data: themeRows }, { data: seriesRows }] = await Promise.all([
+      supabase.from('themes').select('id, name').eq('status', 'approved'),
+      supabase.from('series').select('id, name'),
+    ]);
+    const themeOpts = (themeRows ?? []).map(t => `${t.name}(${t.id})`).join('、') || '无';
+    const seriesOpts = (seriesRows ?? []).map(s => `${s.name}(${s.id})`).join('、') || '无';
+
     try {
       const res = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -144,6 +155,7 @@ export async function POST() {
             { role: 'system', content: SYSTEM_PROMPT },
             ...(context ? [{ role: 'user', content: `最近聊天记录（含你之前的回复，用 SCI-Petia 开头）如下：\n${context}` }] : []),
             { role: 'user', content: latest.content },
+            { role: 'user', content: `若你要调用 record_entry，可选的已过审版式(id)：${themeOpts}；可选的系列(id)：${seriesOpts}。theme_id 和 series_id 都可以为 null。` },
           ],
           tools: [RECORD_TOOL],
         }),
@@ -168,6 +180,9 @@ export async function POST() {
         const body = (args.body ?? '').trim();
 
         if (title && slug && body) {
+          const themeId = (themeRows ?? []).some(t => t.id === args.theme_id) ? args.theme_id : null;
+          const seriesId = (seriesRows ?? []).some(s => s.id === args.series_id) ? args.series_id : null;
+
           const { data: profile } = await supabase
             .from('profiles')
             .select('display_name')
@@ -180,12 +195,13 @@ export async function POST() {
             type,
             body,
             status: 'pending',
+            source: 'petia',
             author_id: user.id,
             author_name: profile?.display_name || user.email?.split('@')[0] || '匿名撰稿人',
             tags: [],
             cover_url: '',
-            series_id: null,
-            theme_id: null,
+            series_id: seriesId,
+            theme_id: themeId,
             song_title: '',
             song_url: '',
           });

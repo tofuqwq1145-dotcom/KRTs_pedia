@@ -14,6 +14,7 @@ interface ReviewItem {
   status: 'pending' | 'approved' | 'rejected';
   review_note: string;
   typeLabel: string;
+  source?: string;
 }
 
 const statusStyle: Record<ReviewItem['status'], string> = {
@@ -174,7 +175,12 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
               </div>
               <button onClick={() => setSelected(item)} className="text-left min-w-0" title="点击查看详情并审核">
                 <p className="font-serif text-sm text-archive-text truncate">{item.title}</p>
-                <p className="text-[10px] text-archive-muted tracking-widest truncate">{item.typeLabel} / {item.author_name}</p>
+                <p className="text-[10px] text-archive-muted tracking-widest truncate">
+                  {item.typeLabel} / {item.author_name}
+                  {item.source === 'petia' && (
+                    <span className="ml-1 px-1 py-0.5 text-[9px] border border-[#7FB8E4]/40 text-[#7FB8E4] whitespace-nowrap">佩蒂娅代录</span>
+                  )}
+                </p>
                 <p className="text-[10px] text-archive-muted tracking-widest">{new Date(item.created_at).toLocaleDateString('zh-CN')}</p>
               </button>
             </div>
@@ -193,6 +199,9 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
               <div className="min-w-0">
                 <p className="text-xs text-archive-accent tracking-widest mb-1 uppercase truncate">
                   {selected.typeLabel} <span className="text-archive-muted normal-case">/ {selected.author_name} / {new Date(selected.created_at).toLocaleString('zh-CN')}</span>
+                  {selected.source === 'petia' && (
+                    <span className="ml-1 px-1 py-0.5 text-[9px] border border-[#7FB8E4]/40 text-[#7FB8E4] normal-case tracking-widest">佩蒂娅代录</span>
+                  )}
                 </p>
                 <h2 className="font-serif text-xl text-archive-text truncate">{selected.title}</h2>
               </div>

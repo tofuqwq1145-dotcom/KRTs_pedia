@@ -164,6 +164,7 @@ export default async function AdminPage() {
             status: p.status,
             review_note: p.review_note ?? '',
             typeLabel: TYPE_LABELS[p.type as keyof typeof TYPE_LABELS] ?? p.type,
+            source: p.source ?? 'user',
           }));
           return (
             <section key={tab.key} className="border border-archive-border bg-archive-paper/50 p-5">
