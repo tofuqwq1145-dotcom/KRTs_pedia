@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { getStats, getLatestPages, TYPE_LABELS, fmtDate } from '@/lib/pages';
+import ChatRoom from '@/components/ChatRoom';
+import Announcements from '@/components/Announcements';
 
 export default async function Home() {
   const stats = await getStats();
@@ -48,6 +50,24 @@ export default async function Home() {
               <p className="text-sm text-archive-text leading-relaxed line-clamp-2">{item.excerpt}</p>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="border-y border-archive-border bg-archive-bg/40">
+        <div className="max-w-6xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-5 gap-10">
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-serif text-3xl text-archive-text">实时聊天室</h2>
+              <Link href="/chat" className="text-sm tracking-widest text-archive-accent hover:underline">进入聊天室 →</Link>
+            </div>
+            <ChatRoom />
+          </div>
+          <div className="lg:col-span-2">
+            <div className="mb-6">
+              <h2 className="font-serif text-3xl text-archive-text">站内公告</h2>
+            </div>
+            <Announcements />
+          </div>
         </div>
       </section>
     </div>

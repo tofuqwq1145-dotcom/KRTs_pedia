@@ -113,6 +113,10 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [coverUrl, setCoverUrl] = useState('');
   const [themeId, setThemeId] = useState('');
   const [themeList, setThemeList] = useState<{ id: string; name: string }[]>([]);
+  const [songList, setSongList] = useState<{ id: string; title: string; url: string }[]>([]);
+  const [songId, setSongId] = useState('');
+  const [songTitle, setSongTitle] = useState('');
+  const [songUrl, setSongUrl] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<{ id: string; display_name?: string } | null>(null);
   const [error, setError] = useState('');
@@ -136,6 +140,9 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     supabase.from('themes').select('id, name').eq('status', 'approved').order('created_at', { ascending: true }).then(({ data }) => {
       setThemeList((data ?? []) as { id: string; name: string }[]);
     });
+    supabase.from('songs').select('id, title, url').order('sort_order', { ascending: true }).then(({ data }) => {
+      setSongList((data ?? []) as { id: string; title: string; url: string }[]);
+    });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { id: data.user.id, display_name: data.user.user_metadata?.display_name } : null);
       setAuthChecked(true);
@@ -156,6 +163,9 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
             setTags((data.tags ?? []).join(', '));
             setThemeId(data.theme_id ?? '');
             setCoverUrl(data.cover_url ?? '');
+            setSongUrl((data.song_url ?? '').trim());
+            setSongTitle((data.song_title ?? '').trim());
+            setSongId('');
           }
         });
     }
@@ -240,6 +250,13 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     }
   }
 
+  async function onPickSong(id: string) {
+    setSongId(id);
+    const s = songList.find(x => x.id === id);
+    setSongTitle(s?.title ?? '');
+    setSongUrl(s?.url ?? '');
+  }
+
   async function onSubmit() {
     setError('');
     setNotice('');
@@ -260,6 +277,8 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
           tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
           cover_url: coverUrl,
           theme_id: themeId || null,
+          song_title: songTitle,
+          song_url: songUrl,
         }),
       });
       const json = await res.json();
@@ -391,6 +410,19 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
                 )}
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs tracking-widest text-archive-muted mb-2">文档配乐（可选，打开该文档时自动播放）</label>
+            <p className="text-xs text-archive-muted mb-2 leading-relaxed">从站内曲库选择一首；暂未收录可作为建议写在正文里，或请站主入库。</p>
+            <select
+              value={songId}
+              onChange={e => onPickSong(e.target.value)}
+              className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
+            >
+              <option value="">不设置配乐</option>
+              {songList.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
           </div>
 
           <div>

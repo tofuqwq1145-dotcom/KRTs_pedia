@@ -49,7 +49,7 @@ export async function PUT(
     return NextResponse.json({ error: '只能修改自己的投稿' }, { status: 403 });
   }
 
-  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[]; cover_url?: string; theme_id?: string | null };
+  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[]; cover_url?: string; theme_id?: string | null; song_title?: string; song_url?: string };
   try {
     payload = await request.json();
   } catch {
@@ -90,6 +90,8 @@ export async function PUT(
       tags,
       cover_url: (payload.cover_url ?? '').trim(),
       theme_id: themeId,
+      song_title: (payload.song_title ?? '').trim(),
+      song_url: (payload.song_url ?? '').trim(),
       status: isAdmin && existing.status === 'approved' ? 'approved' : 'pending',
       review_note: '',
       reviewed_by: null,

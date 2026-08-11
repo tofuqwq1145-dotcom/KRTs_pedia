@@ -26,3 +26,29 @@ export async function uploadMedia(
 
   return supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
 }
+
+const MAX_AUDIO_SIZE = 30 * 1024 * 1024;
+
+export async function uploadAudio(
+  supabase: SupabaseClient,
+  uid: string,
+  file: File,
+): Promise<string> {
+  if (file.size > MAX_AUDIO_SIZE) {
+    throw new Error('音频不能超过 30MB。');
+  }
+  const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const ts = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8);
+  const path = `songs/${uid}/${ts}-${rand}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from('media')
+    .upload(path, file, { contentType: file.type || 'audio/mpeg' });
+
+  if (error) {
+    throw new Error(error.message || '上传失败。');
+  }
+
+  return supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
+}

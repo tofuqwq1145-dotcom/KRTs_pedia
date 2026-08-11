@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import ReviewPanel from '@/components/ReviewPanel';
 import SeriesManager from '@/components/SeriesManager';
 import ThemeReview from '@/components/ThemeReview';
+import SongsManager from '@/components/SongsManager';
 import Breadcrumb from '@/components/Breadcrumb';
 import { TYPE_LABELS } from '@/lib/pages';
 import type { Metadata } from 'next';
@@ -65,6 +66,8 @@ export default async function AdminPage() {
       })}
 
       <ThemeReview />
+
+      <SongsManager />
 
       <SeriesManager />
     </div>

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '请先登录' }, { status: 401 });
   }
 
-  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[]; cover_url?: string; theme_id?: string | null };
+  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[]; cover_url?: string; theme_id?: string | null; song_title?: string; song_url?: string };
   try {
     payload = await request.json();
   } catch {
@@ -76,6 +76,8 @@ export async function POST(request: Request) {
       tags,
       cover_url: (payload.cover_url ?? '').trim(),
       theme_id: themeId,
+      song_title: (payload.song_title ?? '').trim(),
+      song_url: (payload.song_url ?? '').trim(),
     })
     .select('id')
     .single();

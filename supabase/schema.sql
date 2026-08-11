@@ -233,6 +233,62 @@ create policy "comments_delete_own" on public.comments
 
 alter publication supabase_realtime add table public.comments;
 
+-- ---------- announcements：首页公告（仅站主可编辑） ----------
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null default '',
+  is_active boolean not null default true,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.announcements enable row level security;
+
+drop policy if exists "announcements_read_public" on public.announcements;
+create policy "announcements_read_public" on public.announcements for select using (true);
+
+drop policy if exists "announcements_insert_admin" on public.announcements;
+create policy "announcements_insert_admin" on public.announcements for insert with check (public.is_admin());
+
+drop policy if exists "announcements_update_admin" on public.announcements;
+create policy "announcements_update_admin" on public.announcements for update using (public.is_admin());
+
+drop policy if exists "announcements_delete_admin" on public.announcements;
+create policy "announcements_delete_admin" on public.announcements for delete using (public.is_admin());
+
+-- ---------- songs：站内配乐曲库 ----------
+create table if not exists public.songs (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  artist text not null default '',
+  url text not null,
+  playlist text not null default 'home',
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists songs_playlist_idx on public.songs (playlist);
+
+alter table public.songs enable row level security;
+
+drop policy if exists "songs_read_public" on public.songs;
+create policy "songs_read_public" on public.songs for select using (true);
+
+drop policy if exists "songs_insert_admin" on public.songs;
+create policy "songs_insert_admin" on public.songs for insert with check (public.is_admin());
+
+drop policy if exists "songs_update_admin" on public.songs;
+create policy "songs_update_admin" on public.songs for update using (public.is_admin());
+
+drop policy if exists "songs_delete_admin" on public.songs;
+create policy "songs_delete_admin" on public.songs for delete using (public.is_admin());
+
+-- pages 新增：文档配乐
+alter table public.pages add column if not exists song_title text not null default '';
+alter table public.pages add column if not exists song_url text not null default '';
+
 -- ---------- profiles：个人信息扩展 ----------
 alter table public.profiles add column if not exists bio text not null default '';
 alter table public.profiles add column if not exists featured_page_id uuid references public.pages (id) on delete set null;
