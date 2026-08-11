@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 const EXTERNAL_LINKS = [
   { label: '站长 · 哔哩哔哩', href: 'https://space.bilibili.com/690424907' },
-  { label: '站长 · 抖音', href: 'https://www.douyin.com/user/self' },
+  { label: '站长 · 抖音', href: 'https://v.douyin.com/_9il_CjnAtI/' },
   { label: '服主 · 哔哩哔哩', href: 'https://space.bilibili.com/3691008661391453' },
   { label: '服主 · 抖音', href: 'https://www.douyin.com/user/MS4wLjABAAAAgdSAPPLzEHH2yuf_hjo203Gy7udXDCaL0QQgXdqsTEbJThx9V7FM7GT2WJTN4NFw' },
   { label: '相关视频合集', href: 'https://space.bilibili.com/3691008661391453/video' },
