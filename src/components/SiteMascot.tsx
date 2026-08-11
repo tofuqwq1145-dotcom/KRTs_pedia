@@ -49,11 +49,10 @@ export default function SiteMascot({
   const def = MASCOTS[mood];
   const key = `${mood}-${active ? 'play' : 'pause'}`;
   const url = imgs?.[key];
-  const bg = `radial-gradient(circle at 35% 30%, ${def.bgB}, ${def.bgA})`;
 
   if (url) {
     return (
-      <span className="mascot" style={{ width: size, height: size, background: def.bgA }} title={title ?? def.label} aria-label={def.label}>
+      <span className="mascot" style={{ width: size, height: size }} title={title ?? def.label} aria-label={def.label}>
         <img src={url} alt={def.label} className="w-full h-full object-cover" draggable={false} />
       </span>
     );
@@ -62,7 +61,7 @@ export default function SiteMascot({
   return (
     <span
       className={`mascot ${active ? 'mascot-play' : 'mascot-idle'}`}
-      style={{ width: size, height: size, background: bg }}
+      style={{ width: size, height: size }}
       title={title ?? def.label}
       aria-label={def.label}
     >

@@ -8,18 +8,71 @@
   }
 }
 
-/* 首页 hero：半透明背景图 + 暗角金辉兜底 */
+/* 首页 hero：半透明背景图 + 深蓝辉光兜底 */
 .hero-bg {
-  background-color: #0a0a0a;
+  background-color: #080b0f;
   background-image:
-    radial-gradient(1100px 560px at 50% -8%, rgba(201, 168, 108, 0.12), transparent 58%),
-    radial-gradient(900px 520px at 82% 112%, rgba(201, 168, 108, 0.07), transparent 60%),
-    linear-gradient(180deg, rgba(10, 10, 10, 0.5), rgba(10, 10, 10, 0.86)),
+    radial-gradient(1100px 560px at 50% -8%, rgba(127, 184, 228, 0.16), transparent 58%),
+    radial-gradient(900px 520px at 82% 112%, rgba(23, 55, 94, 0.55), transparent 60%),
+    linear-gradient(180deg, rgba(8, 11, 15, 0.5), rgba(8, 11, 15, 0.88)),
     url('/hero.jpg');
   background-size: auto, auto, auto, cover;
   background-position: center, center, center, center;
   background-repeat: no-repeat;
 }
+
+/* 科幻网格 */
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(127, 184, 228, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 184, 228, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 38%, rgba(0, 0, 0, 0.95), transparent 72%);
+}
+
+/* 扫描线 */
+.hero-scan {
+  position: absolute; left: 0; right: 0; top: -30%; height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(127, 184, 228, 0.05), rgba(127, 184, 228, 0.16), rgba(127, 184, 228, 0.05), transparent);
+  animation: heroScan 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes heroScan { 0% { transform: translateY(0); } 100% { transform: translateY(620%); } }
+
+/* 标题区呼吸（深蓝）光晕 */
+.hero-breathe {
+  position: absolute; left: 50%; top: 50%; width: 72vmin; height: 72vmin;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(43, 108, 184, 0.5), rgba(22, 58, 108, 0.24) 45%, transparent 70%);
+  filter: blur(36px);
+  animation: heroBreathe 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes heroBreathe {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+}
+
+/* 标题文字呼吸辉光 */
+.hero-title-glow {
+  animation: heroTitleBreathe 5.5s ease-in-out infinite;
+}
+@keyframes heroTitleBreathe {
+  0%, 100% { text-shadow: 0 0 18px rgba(127, 184, 228, 0.26), 0 0 56px rgba(127, 184, 228, 0.12); }
+  50% { text-shadow: 0 0 30px rgba(127, 184, 228, 0.5), 0 0 84px rgba(127, 184, 228, 0.26); }
+}
+
+/* 科幻定位角框 */
+.hud-cr {
+  position: absolute; width: 24px; height: 24px;
+  border-color: rgba(127, 184, 228, 0.6); border-style: solid; border-width: 0;
+  pointer-events: none;
+}
+.hud-cr-tl { top: -18px; left: -18px; border-top-width: 1px; border-left-width: 1px; }
+.hud-cr-tr { top: -18px; right: -18px; border-top-width: 1px; border-right-width: 1px; }
+.hud-cr-bl { bottom: -18px; left: -18px; border-bottom-width: 1px; border-left-width: 1px; }
+.hud-cr-br { bottom: -18px; right: -18px; border-bottom-width: 1px; border-right-width: 1px; }
 
 /* 文字入场：上移 + 淡入 + 轻微去模糊，错峰播放 */
 @keyframes heroRise {
