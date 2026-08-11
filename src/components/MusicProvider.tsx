@@ -40,7 +40,15 @@ function shuffled<T>(arr: T[]): T[] {
 export default function MusicProvider() {
   const pathname = usePathname();
   const [songs, setSongs] = useState<Song[]>([]);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const saved = window.localStorage.getItem('krt-sci-panel');
+      if (saved === '1') return true;
+      if (saved === '0') return false;
+    } catch { /* 忽略读取失败 */ }
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
   const [playing, setPlaying] = useState(false);
   const [label, setLabel] = useState('');
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -144,16 +152,19 @@ export default function MusicProvider() {
     if (!audio) return;
     const onTime = () => setTime(audio.currentTime);
     const onMeta = () => setDur(isFinite(audio.duration) ? audio.duration : 0);
-    const onEnded = () => setTime(0);
     audio.addEventListener('timeupdate', onTime);
     audio.addEventListener('loadedmetadata', onMeta);
-    audio.addEventListener('ended', onEnded);
     return () => {
       audio.removeEventListener('timeupdate', onTime);
       audio.removeEventListener('loadedmetadata', onMeta);
-      audio.removeEventListener('ended', onEnded);
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('krt-sci-panel', collapsed ? '1' : '0');
+    } catch { /* 忽略写入失败 */ }
+  }, [collapsed]);
 
   useEffect(() => () => cancelFade(), []);
 
@@ -227,7 +238,10 @@ export default function MusicProvider() {
     setShuffle(false);
     setLoopOne(false);
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
-    if (list.length > 0) playQueue(list, i, playlistLabel(key));
+    if (list.length > 0) {
+      playQueue(list, i, playlistLabel(key));
+      playNow();
+    }
   }
 
   function manualPick(key: string) {
@@ -237,6 +251,7 @@ export default function MusicProvider() {
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
+      playNow();
     } else {
       setQueue([]);
       setLabel(playlistLabel(key));
@@ -252,6 +267,7 @@ export default function MusicProvider() {
     setLoopOne(false);
     setIndex(i);
     setPlaying(true);
+    playNow();
   }
 
   function release() {
@@ -268,11 +284,28 @@ export default function MusicProvider() {
     }
     setIndex(n);
     setPlaying(true);
+    playNow();
   };
+
+  function playNow() {
+    const audio = audioRef.current;
+    const url = current?.url;
+    if (!audio || !url) return;
+    cancelFade();
+    audio.volume = 1;
+    audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => {});
+  }
 
   const toggle = () => {
     if (!current) return;
-    setPlaying(p => !p);
+    if (playing) {
+      const audio = audioRef.current;
+      setPlaying(false);
+      if (audio) fadeToVolume(audio, 0, 200, () => audio.pause());
+    } else {
+      setPlaying(true);
+      playNow();
+    }
   };
 
   function seek(e: MouseEvent<HTMLDivElement>) {
@@ -302,7 +335,7 @@ export default function MusicProvider() {
 
   return (
     <>
-      <audio ref={audioRef} onEnded={onEnded} />
+      <audio ref={audioRef} onEnded={onEnded} playsInline preload="auto" />
       {collapsed ? (
         <button
           onClick={() => setCollapsed(false)}
