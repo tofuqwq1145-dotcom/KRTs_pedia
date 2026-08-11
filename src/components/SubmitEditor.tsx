@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { supabaseConfigured } from '@/lib/supabase/client';
-import { uploadMedia } from '@/lib/supabase/upload';
+import { uploadMedia, uploadAudio } from '@/lib/supabase/upload';
 import Markdown from '@/components/Markdown';
 
 const TYPE_OPTIONS: { value: string; label: string }[] = [
@@ -127,6 +127,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasBody = body.trim().length > 0;
@@ -268,6 +269,27 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     const s = songList.find(x => x.id === id);
     setSongTitle(s?.title ?? '');
     setSongUrl(s?.url ?? '');
+  }
+
+  async function onUploadSong(file: File) {
+    setUploadError('');
+    if (!user) return setUploadError('请先登录。');
+    if (!/audio\//.test(file.type) && !/\.(mp3|m4a|aac|wav|ogg)$/i.test(file.name)) {
+      return setUploadError('请上传音频文件（mp3 / m4a / aac / wav / ogg）。');
+    }
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const url = await uploadAudio(supabase, user.id, file, 1024 * 1024);
+      setSongTitle(file.name.replace(/\.[^.]+$/, ''));
+      setSongUrl(url);
+      setSongId('');
+    } catch (e: any) {
+      setUploadError(e.message || '上传失败。');
+    } finally {
+      setUploading(false);
+      if (audioInputRef.current) audioInputRef.current.value = '';
+    }
   }
 
   async function onSubmit() {
@@ -426,8 +448,22 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
           </div>
 
           <div>
-            <label className="block text-xs tracking-widest text-archive-muted mb-2">文档配乐（可选，打开该文档时自动播放）</label>
-            <p className="text-xs text-archive-muted mb-2 leading-relaxed">从站内曲库选择一首；暂未收录可作为建议写在正文里，或请站主入库。</p>
+            <label className="block text-xs tracking-widest text-archive-muted mb-2">文档配乐（可选，打开该文档时自动循环播放）</label>
+            <div className="flex items-center gap-3 mb-3">
+              <button
+                onClick={() => audioInputRef.current?.click()}
+                disabled={uploading}
+                className="px-4 py-2 border border-archive-border text-xs tracking-widest text-archive-muted hover:border-archive-accent hover:text-archive-accent transition-colors disabled:opacity-50"
+              >
+                {uploading ? '上传中…' : songUrl ? (songId ? `已选曲目：${songTitle}` : `已上传：${songTitle || '配乐'}`) : '上传自己的配乐（≤1MB）'}
+              </button>
+              {songUrl && (
+                <button onClick={() => { setSongUrl(''); setSongTitle(''); setSongId(''); }} className="text-xs text-archive-muted hover:text-archive-accent transition-colors">移除</button>
+              )}
+              <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) onUploadSong(f); }} />
+            </div>
+            <p className="text-xs text-archive-muted mb-2 leading-relaxed">支持上传自己的音频（mp3 / m4a / aac / wav / ogg，≤ 1MB）；也可从站内曲库选择：</p>
             <select
               value={songId}
               onChange={e => onPickSong(e.target.value)}
