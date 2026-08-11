@@ -150,6 +150,7 @@
 }
 
 /* KRTP-SCI-P 悬浮播放器 */
+@layer components {
 .krt-panel {
   position: relative;
   background: linear-gradient(165deg, rgba(43,38,30,0.92), rgba(15,14,17,0.95));
@@ -184,3 +185,4 @@
 .krt-eq span:nth-child(4) { height: 85%; animation-delay: .45s; }
 .krt-eq span:nth-child(5) { height: 52%; animation-delay: .6s; }
 @keyframes krtEq { 0%, 100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+}
