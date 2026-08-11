@@ -76,3 +76,75 @@
   15% { opacity: 1; }
   100% { box-shadow: 0 0 0 60px rgba(255,255,255,0), 0 0 0 120px rgba(255,255,255,0); opacity: 0; }
 }
+
+/* 站娘（Site Mascot） */
+.mascot {
+  position: relative;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  user-select: none;
+}
+.mascot-girl { position: relative; z-index: 2; width: 62%; height: 62%; display: block; }
+.mascot-idle .mascot-girl { animation: mascotIdle 3.2s ease-in-out infinite; }
+.mascot-play .mascot-girl { animation: mascotDance 0.72s ease-in-out infinite; }
+@keyframes mascotIdle {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3%) scale(1.02); }
+}
+@keyframes mascotDance {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  25% { transform: translateY(-7%) rotate(2deg); }
+  50% { transform: translateY(0) rotate(3deg); }
+  75% { transform: translateY(-4%) rotate(-2deg); }
+}
+
+.mascot-note { position: absolute; z-index: 1; bottom: 14%; left: 50%; font-size: 0.8em; color: rgba(255,255,255,0.9); opacity: 0; pointer-events: none; }
+.mascot-note.n1 { margin-left: -0.9em; }
+.mascot-note.n2 { margin-left: 0.2em; }
+.mascot-note.n3 { margin-left: 0.8em; }
+.mascot-play .mascot-note { animation: mascotNote 2.2s ease-out infinite; }
+.mascot-play .mascot-note.n2 { animation-delay: 0.7s; }
+.mascot-play .mascot-note.n3 { animation-delay: 1.4s; }
+@keyframes mascotNote {
+  0% { opacity: 0; transform: translateY(8px); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-24px) rotate(12deg); }
+}
+
+.mascot-bars { position: absolute; z-index: 0; left: 0; right: 0; bottom: 0; height: 46%; display: flex; align-items: flex-end; justify-content: center; gap: 5px; }
+.mascot-bars span { width: 6px; border-radius: 3px; background: rgba(255,255,255,0.55); animation: mascotBars 1s ease-in-out infinite; }
+.mascot-bars span:nth-child(1) { height: 22%; }
+.mascot-bars span:nth-child(2) { height: 38%; animation-delay: 0.2s; }
+.mascot-bars span:nth-child(3) { height: 26%; animation-delay: 0.4s; }
+@keyframes mascotBars {
+  0%, 100% { transform: scaleY(0.55); opacity: 0.7; }
+  50% { transform: scaleY(1.2); opacity: 1; }
+}
+
+.mascot-embers { position: absolute; z-index: 0; inset: 0; }
+.mascot-embers span { position: absolute; width: 4px; height: 4px; border-radius: 9999px; background: rgba(255,190,90,0.85); animation: mascotEmber 3s linear infinite; }
+.mascot-embers span:nth-child(1) { left: 22%; bottom: 18%; animation-delay: 0s; }
+.mascot-embers span:nth-child(2) { left: 55%; bottom: 12%; animation-delay: 0.9s; }
+.mascot-embers span:nth-child(3) { left: 70%; bottom: 30%; animation-delay: 1.7s; }
+@keyframes mascotEmber {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-8px, -34px) scale(0.4); }
+}
+
+.mascot-bubble { position: absolute; z-index: 3; top: 8%; right: 6%; width: 1.1em; height: 0.9em; border-radius: 50% 50% 50% 10%; background: #fffdf5; color: #8a5a2b; font-size: 0.55em; display: flex; align-items: center; justify-content: center; animation: mascotBubble 2.4s ease-in-out infinite; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+@keyframes mascotBubble {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.mascot-pen { position: absolute; z-index: 3; top: 10%; left: 12%; width: 1.3em; height: 0.34em; border-radius: 0.2em; background: linear-gradient(90deg, #5c3a1e, #8a5a2b); transform: rotate(-24deg); animation: mascotPen 1.6s ease-in-out infinite; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+.mascot-pen::after { content: ''; position: absolute; right: -0.28em; top: 0.05em; width: 0.24em; height: 0.24em; border-radius: 9999px; background: #d9b98a; }
+@keyframes mascotPen {
+  0%, 100% { transform: translateY(0) rotate(-24deg); }
+  50% { transform: translateY(-0.3em) rotate(-14deg); }
+}

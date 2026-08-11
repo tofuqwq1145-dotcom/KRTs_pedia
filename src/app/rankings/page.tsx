@@ -64,16 +64,16 @@ export default async function RankingsPage() {
     rows = Array.from(map.values()).map(x => ({ slug: x.slug, title: x.title, avg: x.sum / x.count, count: x.count }));
   }
 
-  const top = [...rows].sort((a, b) => b.avg - a.avg || b.count - a.count).slice(0, 20);
-  const worst = [...rows].sort((a, b) => a.avg - b.avg || b.count - a.count).slice(0, 20);
+  const top = rows.filter(r => r.avg >= 3).sort((a, b) => b.avg - a.avg || b.count - a.count).slice(0, 20);
+  const worst = rows.filter(r => r.avg < 3).sort((a, b) => a.avg - b.avg || b.count - a.count).slice(0, 20);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 fade-in">
+    <div className="max-w-5xl mx-auto px-6 py-12 fade-in">
       <Breadcrumb items={[{ label: '排行榜' }]} />
       <h1 className="font-serif text-4xl mb-4 text-archive-text border-b border-archive-border pb-6">排行榜</h1>
-      <p className="text-sm tracking-widest text-archive-muted mb-10">依据读者评分（每账号一票）统计：最受欢迎的档案，与评分最低的档案。</p>
+      <p className="text-sm tracking-widest text-archive-muted mb-10">依据读者评分（每账号一票）统计：最受欢迎的文档（均分 ≥3），与差评最多的文档（均分 &lt;3）。</p>
 
-      <div className="space-y-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <List title="最受欢迎的文档" rows={top} />
         <List title="差评最多的文档" rows={worst} />
       </div>

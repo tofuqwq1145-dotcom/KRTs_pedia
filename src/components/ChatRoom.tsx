@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
+import SiteMascot from '@/components/SiteMascot';
+import { renderStickers } from '@/lib/stickers';
+import { STICKER_MOODS } from '@/data/mascot';
 
 interface Message {
   id: string;
@@ -111,11 +114,21 @@ export default function ChatRoom() {
               <div key={m.id} className="flex items-start gap-3">
                 <span className="shrink-0 text-xs tracking-widest text-archive-accent mt-1">{m.author_name}</span>
                 <div className="flex-1 bg-archive-bg/60 border border-archive-border px-4 py-2.5">
-                  <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>
+                  <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{renderStickers(m.content)}</p>
                   <p className="text-[10px] text-archive-muted tracking-widest mt-1.5">{fmt(m.created_at)}</p>
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
+            {STICKER_MOODS.map(s => (
+              <button key={s.mood} onClick={() => setText(t => (t ? t + ' ' : '') + `[mascot:${s.mood}]`)} title={`发送「${s.label}」表情`}
+                className="shrink-0 hover:scale-110 transition-transform">
+                <SiteMascot mood={s.mood} active size={30} />
+              </button>
+            ))}
+            <span className="shrink-0 text-[10px] text-archive-muted tracking-widest">点击插入站娘表情</span>
           </div>
 
           <div className="flex gap-3">

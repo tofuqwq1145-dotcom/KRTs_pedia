@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { PLAYLIST_OPTIONS, playlistForPath, playlistLabel } from '@/data/music';
+import { mascotForPath } from '@/data/mascot';
+import SiteMascot from '@/components/SiteMascot';
 
 interface Song { id: string; title: string; artist: string; url: string; playlist: string }
 
@@ -135,20 +137,28 @@ export default function MusicProvider() {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-archive-text text-archive-paper flex items-center justify-center shadow-xl hover:bg-archive-accent transition-colors"
+        className="fixed bottom-6 right-6 z-50 shadow-xl hover:scale-105 transition-transform"
         title={label || '打开音乐'}
       >
-        <span className={`text-xl ${playing ? 'animate-pulse' : ''}`}>♪</span>
+        <SiteMascot mood={mascotForPath(pathname)} active={playing} size={64} />
       </button>
     );
   }
 
+  const mood = mascotForPath(pathname);
+
   return (
     <div className="fixed bottom-6 right-6 z-50 w-72 bg-archive-paper border border-archive-border shadow-2xl overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3 bg-archive-text text-archive-paper">
-        <div className="min-w-0 mr-2">
-          <p className="text-[10px] tracking-[0.2em] uppercase opacity-70">KRTPedia Player</p>
-          <p className="text-xs tracking-widest truncate">{label || '本页暂无配乐'}</p>
+        <div className="flex items-center gap-3 min-w-0 mr-2">
+          <button onClick={toggle} disabled={!current} title="点击播放 / 暂停"
+            className="shrink-0 disabled:opacity-40 hover:scale-105 transition-transform">
+            <SiteMascot mood={mood} active={playing} size={40} />
+          </button>
+          <div className="min-w-0">
+            <p className="text-[10px] tracking-[0.2em] uppercase opacity-70">KRTPedia Player</p>
+            <p className="text-xs tracking-widest truncate">{label || '本页暂无配乐'}</p>
+          </div>
         </div>
         <button onClick={() => setCollapsed(true)} className="shrink-0 text-sm opacity-80 hover:opacity-100">收起</button>
       </div>
