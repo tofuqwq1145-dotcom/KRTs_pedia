@@ -3,7 +3,7 @@ import { supabaseConfigured } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ReviewPanel from '@/components/ReviewPanel';
 import SeriesManager from '@/components/SeriesManager';
-import ThemeManager from '@/components/ThemeManager';
+import ThemeReview from '@/components/ThemeReview';
 import Breadcrumb from '@/components/Breadcrumb';
 import { TYPE_LABELS } from '@/lib/pages';
 import type { Metadata } from 'next';
@@ -64,7 +64,7 @@ export default async function AdminPage() {
         );
       })}
 
-      <ThemeManager />
+      <ThemeReview />
 
       <SeriesManager />
     </div>

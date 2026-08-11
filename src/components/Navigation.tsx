@@ -7,7 +7,7 @@ export default async function Navigation() {
     { name: '国家', path: '/nations' }, { name: '人物', path: '/people' },
     { name: '战争', path: '/wars' }, { name: '建筑', path: '/buildings' },
     { name: '事件', path: '/events' }, { name: '编年史', path: '/chronicle' },
-    { name: '分级', path: '/series' }, { name: '写作指导', path: '/guide' },
+    { name: '分级', path: '/series' }, { name: '版式', path: '/themes' }, { name: '写作指导', path: '/guide' },
     { name: '聊天室', path: '/chat' }, { name: '关于', path: '/about' },
   ];
 

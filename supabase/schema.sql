@@ -101,16 +101,53 @@ create table if not exists public.themes (
   accent_soft text not null default '#a58050',
   bg text not null default '#f7f3ec',
   style text not null default 'modern',
+  status text not null default 'pending',
+  author_id uuid references auth.users (id) on delete set null,
+  title_color text not null default '',
+  body_color text not null default '',
+  title_font text not null default '',
+  body_font text not null default '',
+  header_style text not null default 'none',
+  header_from text not null default '#1a1a1a',
+  header_to text not null default '#3a3a3a',
+  header_animation text not null default 'none',
+  logo_url text not null default '',
   created_at timestamptz not null default now()
 );
 alter table public.themes add column if not exists slogan text not null default '';
+alter table public.themes add column if not exists status text not null default 'pending';
+alter table public.themes add column if not exists author_id uuid references auth.users (id) on delete set null;
+alter table public.themes add column if not exists title_color text not null default '';
+alter table public.themes add column if not exists body_color text not null default '';
+alter table public.themes add column if not exists title_font text not null default '';
+alter table public.themes add column if not exists body_font text not null default '';
+alter table public.themes add column if not exists header_style text not null default 'none';
+alter table public.themes add column if not exists header_from text not null default '#1a1a1a';
+alter table public.themes add column if not exists header_to text not null default '#3a3a3a';
+alter table public.themes add column if not exists header_animation text not null default 'none';
+alter table public.themes add column if not exists logo_url text not null default '';
 
 alter table public.themes enable row level security;
 
-create policy "themes_read_public" on public.themes for select using (true);
-create policy "themes_insert_admin" on public.themes for insert with check (public.is_admin());
-create policy "themes_update_admin" on public.themes for update using (public.is_admin());
-create policy "themes_delete_admin" on public.themes for delete using (public.is_admin());
+-- 所有人可读已通过；作者可看自己的；站主可看全部
+drop policy if exists "themes_read_public" on public.themes;
+create policy "themes_read_public" on public.themes
+  for select using ((status = 'approved') or (auth.uid() = author_id) or public.is_admin());
+
+-- 登录用户可提交新版式（待审核）
+drop policy if exists "themes_insert_user" on public.themes;
+create policy "themes_insert_user" on public.themes
+  for insert with check (auth.uid() = author_id and status = 'pending');
+
+-- 作者可修改自己待审/被驳回的版式；站主可修改任意
+drop policy if exists "themes_update_own" on public.themes;
+create policy "themes_update_own" on public.themes
+  for update using (public.is_admin() or (auth.uid() = author_id and status in ('pending', 'rejected')));
+
+-- 作者可删除自己待审；站主可删除任意
+drop policy if exists "themes_delete_own" on public.themes;
+create policy "themes_delete_own" on public.themes
+  for delete using (public.is_admin() or (auth.uid() = author_id and status = 'pending'));
 
 -- 兼容升级列：分级父级 / 主题 / 封面 / 标签
 alter table public.series add column if not exists parent_id uuid references public.series (id) on delete cascade;

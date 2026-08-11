@@ -66,6 +66,19 @@ export async function PUT(
     return NextResponse.json({ error: '标题 / Slug / 正文不能为空' }, { status: 400 });
   }
 
+  const themeId = payload.theme_id || null;
+  if (themeId) {
+    const { data: theme } = await supabase
+      .from('themes')
+      .select('id')
+      .eq('id', themeId)
+      .eq('status', 'approved')
+      .maybeSingle();
+    if (!theme) {
+      return NextResponse.json({ error: '所选版式不存在或未过审' }, { status: 400 });
+    }
+  }
+
   const { error } = await supabase
     .from('pages')
     .update({
@@ -76,7 +89,7 @@ export async function PUT(
       series_id: payload.series_id || null,
       tags,
       cover_url: (payload.cover_url ?? '').trim(),
-      theme_id: payload.theme_id || null,
+      theme_id: themeId,
       status: isAdmin && existing.status === 'approved' ? 'approved' : 'pending',
       review_note: '',
       reviewed_by: null,

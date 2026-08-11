@@ -59,6 +59,17 @@ export interface Theme {
   accent_soft: string;
   bg: string;
   style: string;
+  status: 'pending' | 'approved' | 'rejected';
+  author_id?: string | null;
+  title_color: string;
+  body_color: string;
+  title_font: string;
+  body_font: string;
+  header_style: string;
+  header_from: string;
+  header_to: string;
+  header_animation: string;
+  logo_url: string;
   created_at: string;
 }
 

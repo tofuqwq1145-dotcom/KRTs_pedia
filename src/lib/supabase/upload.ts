@@ -4,7 +4,7 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 export async function uploadMedia(
   supabase: SupabaseClient,
-  folder: 'posts' | 'avatars' | 'covers',
+  folder: 'posts' | 'avatars' | 'covers' | 'themes',
   uid: string,
   file: File,
 ): Promise<string> {

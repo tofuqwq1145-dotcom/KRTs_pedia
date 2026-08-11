@@ -133,7 +133,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     supabase.from('series').select('id, name').order('sort_order', { ascending: true }).then(({ data }) => {
       setSeriesList((data ?? []) as { id: string; name: string }[]);
     });
-    supabase.from('themes').select('id, name').order('created_at', { ascending: true }).then(({ data }) => {
+    supabase.from('themes').select('id, name').eq('status', 'approved').order('created_at', { ascending: true }).then(({ data }) => {
       setThemeList((data ?? []) as { id: string; name: string }[]);
     });
     supabase.auth.getUser().then(({ data }) => {

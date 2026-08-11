@@ -43,6 +43,19 @@ export async function POST(request: Request) {
   if (!slug) return NextResponse.json({ error: '条目标识不能为空' }, { status: 400 });
   if (!body) return NextResponse.json({ error: '正文不能为空' }, { status: 400 });
 
+  const themeId = payload.theme_id || null;
+  if (themeId) {
+    const { data: theme } = await supabase
+      .from('themes')
+      .select('id')
+      .eq('id', themeId)
+      .eq('status', 'approved')
+      .maybeSingle();
+    if (!theme) {
+      return NextResponse.json({ error: '所选版式不存在或未过审' }, { status: 400 });
+    }
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('display_name')
@@ -62,7 +75,7 @@ export async function POST(request: Request) {
       series_id: payload.series_id || null,
       tags,
       cover_url: (payload.cover_url ?? '').trim(),
-      theme_id: payload.theme_id || null,
+      theme_id: themeId,
     })
     .select('id')
     .single();

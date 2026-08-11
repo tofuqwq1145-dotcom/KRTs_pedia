@@ -32,7 +32,7 @@ export default function SeriesManager() {
       supabase.from('series').select('*').order('sort_order', { ascending: true }).then((r: any) => {
         if (!r.error) setList(r.data ?? []);
       });
-      supabase.from('themes').select('id, name').order('created_at', { ascending: true }).then((r: any) => {
+      supabase.from('themes').select('id, name').eq('status', 'approved').order('created_at', { ascending: true }).then((r: any) => {
         if (!r.error) setThemes(r.data ?? []);
       });
     };
