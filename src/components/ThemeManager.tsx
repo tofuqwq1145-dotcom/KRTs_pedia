@@ -7,6 +7,7 @@ interface ThemeRow {
   id: string;
   slug: string;
   name: string;
+  slogan: string;
   accent: string;
   accent_soft: string;
   bg: string;
@@ -32,6 +33,7 @@ export default function ThemeManager() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [slogan, setSlogan] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
@@ -52,7 +54,7 @@ export default function ThemeManager() {
       const res = await fetch('/api/themes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), slug: slug.trim(), accent, bg, style }),
+        body: JSON.stringify({ name: name.trim(), slug: slug.trim(), slogan: slogan.trim(), accent, bg, style }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? '创建失败');
@@ -60,6 +62,7 @@ export default function ThemeManager() {
       setList(prev => [...prev, json]);
       setName('');
       setSlug('');
+      setSlogan('');
       setAccent('#8a5a2b');
       setBg('#f7f3ec');
       setStyle('modern');
@@ -103,6 +106,10 @@ export default function ThemeManager() {
             <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-'))} placeholder="knights" className={inputCls} />
           </div>
         </div>
+<div>
+          <label className={labelCls}>宣言 / 座右铭（可选，会显示在条目页头）</label>
+          <input value={slogan} onChange={e => setSlogan(e.target.value)} placeholder="例如：守护记忆，以正视听" className={inputCls} />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={labelCls}>主色（信息栏边框/强调色）</label>
@@ -125,18 +132,47 @@ export default function ThemeManager() {
             </select>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="h-10 flex-1 border px-4 flex items-center gap-3" style={{ borderColor: accent, background: `${accent}14` }}>
-            <span className="text-xs tracking-widest" style={{ color: accent }}>预览：信息栏主色</span>
+        <div>
+          <label className={labelCls}>实时预览（版式效果）</label>
+          <div className="bg-archive-paper border border-archive-border p-6">
+            <div style={{ background: bg }}>
+              <div className="px-6 py-5 text-center" style={style === 'scp' ? { background: accent } : undefined}>
+                <p className="font-serif text-2xl tracking-widest" style={{ color: style === 'scp' ? '#f5f2ea' : accent }}>{name || '示例主题'}</p>
+                {slogan && (
+                  <p className="mt-2 text-xs italic tracking-[0.2em]" style={{ color: style === 'scp' ? '#f5f2ea' : accent }}>
+                    「{slogan}」
+                  </p>
+                )}
+              </div>
+              <div className="px-6 pb-6">
+                <div className="border" style={{ borderColor: accent, borderWidth: style === 'classic' ? 3 : 1 }}>
+                  {[
+                    ['所属分级', '示例分级'],
+                    ['撰稿人', '佚名记录者'],
+                    ['收录时间', '2026.08.11'],
+                  ].map(([k, v], i) => (
+                    <div key={k} className={`flex items-center text-sm ${i < 2 ? 'border-b border-archive-border' : ''}`}>
+                      <div className="w-24 shrink-0 px-3 py-2 tracking-widest" style={{ background: `${accent}14`, color: accent }}>{k}</div>
+                      <div className="px-3 py-2">{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-sm text-archive-text leading-relaxed">
+                  正文将以该底纸与主色呈现。这是一段示例正文，用于预览版式在条目详情中的实际观感。
+                </p>
+              </div>
+            </div>
           </div>
+        </div>
+        <div className="flex items-center gap-4">
           <button onClick={onCreate} disabled={busy}
             className="px-6 py-3 bg-archive-text text-archive-paper text-sm tracking-widest hover:bg-archive-accent transition-colors disabled:opacity-50 shrink-0">
             {busy ? '处理中…' : '创建版式'}
           </button>
-        </div>
-        <div className="text-sm">
-          {error && <p className="text-archive-accent">{error}</p>}
-          {notice && <p className="text-emerald-700">{notice}</p>}
+          <div className="text-sm">
+            {error && <p className="text-archive-accent">{error}</p>}
+            {notice && <p className="text-emerald-700">{notice}</p>}
+          </div>
         </div>
       </div>
 
@@ -144,6 +180,7 @@ export default function ThemeManager() {
         {list.map(t => (
           <div key={t.id} className="border p-5 bg-archive-paper flex flex-col" style={{ borderColor: t.accent }}>
             <p className="font-serif text-lg text-archive-text">{t.name} <span className="text-xs text-archive-muted tracking-widest">/ {t.slug}</span></p>
+            {t.slogan && <p className="mt-1 text-xs italic tracking-widest" style={{ color: t.accent }}>「{t.slogan}」</p>}
             <div className="mt-3 space-y-1.5 text-xs tracking-widest text-archive-muted">
               <div className="flex items-center gap-2"><span className="w-4 h-4 border" style={{ background: t.accent }}></span>主色 {t.accent}</div>
               <div className="flex items-center gap-2"><span className="w-4 h-4 border" style={{ background: t.bg }}></span>底纸 {t.bg}</div>

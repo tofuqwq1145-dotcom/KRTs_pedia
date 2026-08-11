@@ -44,6 +44,11 @@ export default async function PageDetail({ params }: { params: { slug: string } 
             <p className="text-xs text-archive-muted tracking-widest">
               撰稿人：{page.author_name} ／ 收录于 {fmtDate(page.created_at)}
             </p>
+            {theme?.slogan && (
+              <p className="mt-4 mx-auto max-w-xl italic text-sm tracking-[0.2em]" style={{ color: accent, borderTop: `1px solid ${accent}55`, borderBottom: `1px solid ${accent}55`, padding: '0.75rem 0' }}>
+                「{theme.slogan}」
+              </p>
+            )}
           </div>
 
           <div className="border mb-8" style={{ borderColor: accent }}>

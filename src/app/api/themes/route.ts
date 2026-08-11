@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '没有权限' }, { status: 403 });
   }
 
-  let payload: { name?: string; slug?: string; accent?: string; accent_soft?: string; bg?: string; style?: string };
+  let payload: { name?: string; slug?: string; slogan?: string; accent?: string; accent_soft?: string; bg?: string; style?: string };
   try {
     payload = await request.json();
   } catch {
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   if (!name) return NextResponse.json({ error: '主题名称不能为空' }, { status: 400 });
   if (!slug) return NextResponse.json({ error: '主题标识（Slug）不能为空' }, { status: 400 });
 
+  const slogan = (payload.slogan ?? '').trim();
   const accent = (payload.accent ?? '').trim() || '#8a5a2b';
   const accentSoft = (payload.accent_soft ?? '').trim() || accent;
   const bg = (payload.bg ?? '').trim() || '#f7f3ec';
@@ -40,8 +41,8 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from('themes')
-    .insert({ name, slug, accent, accent_soft: accentSoft, bg, style })
-    .select('id, slug, name, accent, accent_soft, bg, style')
+    .insert({ name, slug, slogan, accent, accent_soft: accentSoft, bg, style })
+    .select('id, slug, name, slogan, accent, accent_soft, bg, style')
     .single();
 
   if (error) {

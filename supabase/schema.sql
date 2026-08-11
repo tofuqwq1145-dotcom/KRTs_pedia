@@ -96,12 +96,14 @@ create table if not exists public.themes (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
   name text not null,
+  slogan text not null default '',
   accent text not null default '#8a5a2b',
   accent_soft text not null default '#a58050',
   bg text not null default '#f7f3ec',
   style text not null default 'modern',
   created_at timestamptz not null default now()
 );
+alter table public.themes add column if not exists slogan text not null default '';
 
 alter table public.themes enable row level security;
 

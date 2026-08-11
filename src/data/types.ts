@@ -54,6 +54,7 @@ export interface Theme {
   id: string;
   slug: string;
   name: string;
+  slogan: string;
   accent: string;
   accent_soft: string;
   bg: string;
