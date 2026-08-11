@@ -315,7 +315,7 @@ export default function MusicProvider() {
           </span>
         </button>
       ) : (
-        <div className="krt-panel fixed bottom-6 right-6 z-50 w-80 rounded-2xl overflow-hidden text-[#efe6d5]">
+        <div className="krt-panel fixed bottom-6 right-6 z-50 w-60 rounded-2xl overflow-hidden text-[#efe6d5]">
           <div className="krt-scanline" />
           <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
           <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
@@ -323,17 +323,9 @@ export default function MusicProvider() {
           <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
 
           <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#7FB8E4]/20">
-            <div className="flex items-center gap-3 min-w-0 mr-2">
-              <button onClick={toggle} disabled={!current} className="relative shrink-0 disabled:opacity-40 hover:scale-105 transition-transform" title="点击播放 / 暂停">
-                <SiteMascot mood={mood} active={playing} size={56} />
-              </button>
-              <div className="min-w-0">
-                <p className="font-mono text-[11px] tracking-[0.28em] text-[#7FB8E4]">
-                  KRTP-SCI-P<span className="krt-cursor">▌</span>
-                </p>
-                <p className="text-[10px] tracking-widest text-[#9a8f7a] truncate">{label || '本页暂无配乐'}</p>
-              </div>
-            </div>
+            <p className="font-mono text-[11px] tracking-[0.28em] text-[#7FB8E4]">
+              KRTP-SCI-P<span className="krt-cursor">▌</span>
+            </p>
             <div className="flex items-center gap-2 shrink-0">
               <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#7FB8E4]/30 text-[#7FB8E4]/90">
                 {locked ? 'MANUAL' : shuffle ? 'SHUF' : 'AUTO'}
@@ -343,12 +335,21 @@ export default function MusicProvider() {
           </div>
 
           <div className="relative px-4 pt-3 pb-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-[#f3ead8] truncate">{current?.title || '—'}</p>
-                <p className="text-[11px] text-[#9a8f7a] tracking-wider truncate">{current?.artist || 'NO SIGNAL'}</p>
-              </div>
-              <div className={eqClass}><span /><span /><span /><span /><span /></div>
+            <button onClick={toggle} disabled={!current} className="relative mx-auto block disabled:opacity-40 hover:scale-105 transition-transform" title="点击播放 / 暂停">
+              <SiteMascot mood={mood} active={playing} size={64} />
+            </button>
+
+            <div className="mt-2 text-center min-w-0">
+              <p className="text-sm text-[#f3ead8] truncate">{current?.title || '—'}</p>
+              <p className="text-[10px] text-[#9a8f7a] tracking-wider truncate">{current?.artist || 'NO SIGNAL'}</p>
+            </div>
+
+            <div className="mt-2 flex items-center justify-center">
+              {playing ? (
+                <div className={eqClass}><span /><span /><span /><span /><span /></div>
+              ) : (
+                <span className="font-mono text-[9px] tracking-[0.2em] text-[#7a7059]">STANDBY</span>
+              )}
             </div>
 
             <div className="mt-2">
@@ -361,7 +362,7 @@ export default function MusicProvider() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-4 py-2">
+            <div className="flex items-center justify-center gap-3 py-2">
               <button onClick={() => step(-1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#7FB8E4] hover:border-[#7FB8E4]/50 hover:shadow-[0_0_10px_rgba(127,184,228,0.35)] transition-all text-sm" title="上一首">⏮</button>
               <button onClick={toggle} disabled={!current} className="w-11 h-11 rounded-full bg-[#7FB8E4] text-[#0c1521] flex items-center justify-center disabled:opacity-30 text-base shadow-[0_0_18px_rgba(127,184,228,0.4)] hover:shadow-[0_0_26px_rgba(127,184,228,0.6)] transition-shadow" title="播放 / 暂停">
                 {playing ? '❚❚' : '▶'}

@@ -31,6 +31,57 @@ export default async function AdminPage() {
     .select('*')
     .order('created_at', { ascending: false });
 
+  const [{ count: themesCount }, { count: ratingsCount }, { count: commentsCount }, { count: chatCount }, { count: mascotCount }, { count: seriesCount }] = await Promise.all([
+    supabase.from('themes').select('*', { count: 'exact', head: true }),
+    supabase.from('ratings').select('*', { count: 'exact', head: true }),
+    supabase.from('comments').select('*', { count: 'exact', head: true }),
+    supabase.from('chat_messages').select('*', { count: 'exact', head: true }),
+    supabase.from('mascot_images').select('*', { count: 'exact', head: true }),
+    supabase.from('series').select('*', { count: 'exact', head: true }),
+  ]);
+
+  let songCount = 0;
+  let musicBytes = 0;
+  try {
+    const { data: songRows } = await supabase.from('songs').select('url');
+    if (songRows) {
+      songCount = songRows.length;
+      const sizes = await Promise.all((songRows as { url: string }[]).map(async r => {
+        try {
+          const res = await fetch(r.url, { method: 'HEAD' });
+          const len = res.headers.get('content-length');
+          return len ? Number(len) : 0;
+        } catch {
+          return 0;
+        }
+      }));
+      musicBytes = sizes.reduce((a, b) => a + b, 0);
+    }
+  } catch {
+    // 统计失败不影响页面
+  }
+
+  const pagesApproved = (pages ?? []).filter(p => p.status === 'approved').length;
+  const pagesPending = (pages ?? []).filter(p => p.status === 'pending').length;
+  const pagesRejected = (pages ?? []).filter(p => p.status === 'rejected').length;
+
+  function fmtBytes(n: number): string {
+    if (!n) return '0 B';
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(2)} MB`;
+  }
+
+  function Stat({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
+    return (
+      <div className="border border-archive-border bg-archive-paper p-5">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-archive-muted mb-2">{label}</p>
+        <p className="font-serif text-3xl text-archive-text">{value}</p>
+        {sub && <p className="mt-1 text-xs tracking-widest text-archive-muted">{sub}</p>}
+      </div>
+    );
+  }
+
   const tabs = [
     { key: 'pending', label: '待审核' },
     { key: 'rejected', label: '已驳回' },
@@ -42,6 +93,29 @@ export default async function AdminPage() {
       <Breadcrumb items={[{ label: '站主 · 审核面板' }]} />
       <h1 className="font-serif text-4xl mb-4 text-archive-text border-b border-archive-border pb-6">审核面板（站主）</h1>
       <p className="text-sm tracking-widest text-archive-muted mb-10">逐条审查投稿，通过后内容立即公开。可在备注栏填写驳回理由。</p>
+
+      <section className="mb-14">
+        <h2 className="font-serif text-2xl mb-6 text-archive-text border-b border-archive-border pb-4">仪表盘 · 用量总览</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <Stat label="档案文档" value={pagesApproved} sub={`待审 ${pagesPending} · 驳回 ${pagesRejected}`} />
+          <Stat label="曲目" value={songCount} sub={`音乐占用 ${fmtBytes(musicBytes)}`} />
+          <Stat label="版式主题" value={themesCount ?? 0} />
+          <Stat label="评分" value={ratingsCount ?? 0} />
+          <Stat label="评论" value={commentsCount ?? 0} />
+          <Stat label="聊天消息" value={chatCount ?? 0} />
+          <Stat label="站娘配图" value={mascotCount ?? 0} />
+          <Stat label="分级系列" value={seriesCount ?? 0} />
+        </div>
+        <div className="mt-6 border border-archive-border bg-archive-paper p-5 text-xs tracking-widest text-archive-muted leading-6">
+          <p className="mb-1">· 上传限制：图片 ≤ 5MB，音频 ≤ 1MB（后台已强制校验）。</p>
+          <p className="mb-1">
+            · 实时「月度流量 / 总存储」以 Supabase 官方看板为准：{' '}
+            <a href="https://supabase.com/dashboard/project/ynqecbsychdgjtrlvegd/billing/usage" target="_blank" rel="noreferrer" className="underline text-archive-accent">项目用量看板</a>
+            （需登录 Supabase 账号；本站代码无权读取该数字）。
+          </p>
+          <p>· 本站可统计曲库文件占用；若音乐增多接近免费额度，可降低码率或升级套餐。覆盖上传时记得删除旧文件，避免占用累积。</p>
+        </div>
+      </section>
 
       {tabs.map(tab => {
         const filtered = (pages ?? []).filter(p => p.status === tab.key);
