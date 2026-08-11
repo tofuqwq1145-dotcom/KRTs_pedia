@@ -31,8 +31,10 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<ReviewItem | null>(null);
+  const [sel, setSel] = useState<string[]>([]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -43,6 +45,51 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
       i.typeLabel.toLowerCase().includes(q),
     );
   }, [items, query]);
+
+  const allSelected = filtered.length > 0 && filtered.every(i => sel.includes(i.id));
+
+  function toggleSel(id: string) {
+    setSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function toggleAll() {
+    setSel(prev => {
+      if (allSelected) {
+        const keep = new Set(filtered.map(i => i.id));
+        return prev.filter(x => !keep.has(x));
+      }
+      const n = prev.slice();
+      for (const i of filtered) if (!n.includes(i.id)) n.push(i.id);
+      return n;
+    });
+  }
+
+  async function batchAct(action: 'approve' | 'reject' | 'delete') {
+    if (sel.length === 0) return;
+    let note = '';
+    if (action === 'delete') {
+      if (!window.confirm(`确定批量删除选中的 ${sel.length} 条档案？该操作不可恢复。`)) return;
+    } else if (action === 'reject') {
+      note = window.prompt('批量驳回理由（可选，会展示给作者）：') ?? '';
+    }
+    setBatchBusy(true);
+    try {
+      const res = await fetch('/api/admin/review/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: sel, action, note }),
+      });
+      const json = await res.json();
+      if (!res.ok) alert(json.error || '操作失败');
+    } catch (e) {
+      alert('网络错误，请重试。');
+    } finally {
+      setBatchBusy(false);
+      setSel([]);
+      setSelected(null);
+      router.refresh();
+    }
+  }
 
   async function act(id: string, action: 'approve' | 'reject') {
     setBusy(id);
@@ -90,20 +137,49 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
         <span className="text-xs tracking-widest text-archive-muted shrink-0">显示 {filtered.length} 条</span>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <button onClick={toggleAll}
+          className="text-[11px] tracking-widest border border-archive-border px-2.5 py-1 text-archive-muted hover:text-archive-accent hover:border-archive-accent transition-colors">
+          {allSelected ? '取消全选' : '全选'}
+        </button>
+        <span className="text-[11px] tracking-widest text-archive-muted">已选 {sel.length}</span>
+        <button onClick={() => batchAct('approve')} disabled={sel.length === 0 || batchBusy}
+          className="text-[11px] tracking-widest border border-emerald-700/50 text-emerald-700 px-2.5 py-1 hover:bg-emerald-700 hover:text-white transition-colors disabled:opacity-40">
+          批量通过
+        </button>
+        <button onClick={() => batchAct('reject')} disabled={sel.length === 0 || batchBusy}
+          className="text-[11px] tracking-widest border border-archive-accent/50 text-archive-accent px-2.5 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-40">
+          批量驳回
+        </button>
+        <button onClick={() => batchAct('delete')} disabled={sel.length === 0 || batchBusy}
+          className="text-[11px] tracking-widest border border-[#b91c1c]/50 text-[#b91c1c] px-2.5 py-1 hover:bg-[#b91c1c] hover:text-white transition-colors disabled:opacity-40">
+          批量删除
+        </button>
+        {sel.length > 0 && (
+          <button onClick={() => setSel([])} className="text-[11px] tracking-widest text-archive-muted hover:text-archive-accent px-2.5 py-1 transition-colors">清空</button>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-2">
-        {filtered.map(item => (
-          <button
-            key={item.id}
-            onClick={() => setSelected(item)}
-            className="text-left bg-archive-bg/50 border border-archive-border px-3 py-3 flex flex-col gap-1.5 hover:border-archive-accent transition-colors min-w-0"
-            title="点击查看详情并审核"
-          >
-            <span className={`self-start px-2 py-0.5 text-[10px] tracking-widest border whitespace-nowrap ${statusStyle[item.status]}`}>{statusText[item.status]}</span>
-            <p className="font-serif text-sm text-archive-text truncate">{item.title}</p>
-            <p className="text-[10px] text-archive-muted tracking-widest truncate">{item.typeLabel} / {item.author_name}</p>
-            <p className="text-[10px] text-archive-muted tracking-widest">{new Date(item.created_at).toLocaleDateString('zh-CN')}</p>
-          </button>
-        ))}
+        {filtered.map(item => {
+          const isSel = sel.includes(item.id);
+          return (
+            <div key={item.id}
+              className={`bg-archive-bg/50 border px-3 py-3 flex flex-col gap-1.5 transition-colors min-w-0 ${isSel ? 'border-archive-accent' : 'border-archive-border'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <span className={`px-2 py-0.5 text-[10px] tracking-widest border whitespace-nowrap ${statusStyle[item.status]}`}>{statusText[item.status]}</span>
+                <label className="shrink-0 flex items-center cursor-pointer" title="选择">
+                  <input type="checkbox" checked={isSel} onChange={() => toggleSel(item.id)} className="accent-[#7FB8E4]" />
+                </label>
+              </div>
+              <button onClick={() => setSelected(item)} className="text-left min-w-0" title="点击查看详情并审核">
+                <p className="font-serif text-sm text-archive-text truncate">{item.title}</p>
+                <p className="text-[10px] text-archive-muted tracking-widest truncate">{item.typeLabel} / {item.author_name}</p>
+                <p className="text-[10px] text-archive-muted tracking-widest">{new Date(item.created_at).toLocaleDateString('zh-CN')}</p>
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (

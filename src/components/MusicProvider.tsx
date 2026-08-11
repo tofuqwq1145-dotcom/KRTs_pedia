@@ -6,10 +6,23 @@ import { usePathname } from 'next/navigation';
 import { PLAYLIST_OPTIONS, playlistForPath, playlistLabel } from '@/data/music';
 import { mascotForPath } from '@/data/mascot';
 import SiteMascot from '@/components/SiteMascot';
+import Markdown from '@/components/Markdown';
 
 interface Song { id: string; title: string; artist: string; url: string; playlist: string }
 
 interface QueueItem { title: string; artist: string; url: string }
+
+const WRITE_EXAMPLES: { title: string; md: string }[] = [
+  { title: '标题', md: '## 章节标题\n\n### 小节标题\n\n#### 更小标题' },
+  { title: '强调', md: '**加粗文字**、*斜体文字*、~~删除线~~ 与 `行内代码`。' },
+  { title: '引用', md: '> 这是一段引用，用于强调某句话或史料原文。' },
+  { title: '列表', md: '- 无序项目一\n- 无序项目二\n\n1. 有序项目一\n2. 有序项目二' },
+  { title: '代码块', md: '```ts\nconst era = "KRTP";\nconsole.log(era);\n```' },
+  { title: '表格', md: '| 国名 | 首都 |\n| --- | --- |\n| 甲国 | 王城 |\n| 乙国 | 圣殿 |' },
+  { title: '链接', md: '[点击访问外部史料](https://example.com)' },
+  { title: '折叠块', md: ':::collapsible\n## 小节标题\n\n正文默认折叠，读者点击标题即可展开阅读。\n:::' },
+  { title: '分割线', md: '---' },
+];
 
 function fmt(s: number): string {
   if (!isFinite(s) || s < 0) return '00:00';
@@ -57,6 +70,7 @@ export default function MusicProvider() {
   const [shuffle, setShuffle] = useState(false);
   const [loopOne, setLoopOne] = useState(false);
   const [showTracks, setShowTracks] = useState(false);
+  const [showWrite, setShowWrite] = useState(false);
   const [browseTab, setBrowseTab] = useState<'pl' | 'q'>('pl');
   const [browseKey, setBrowseKey] = useState<string | null>(null);
   const [time, setTime] = useState(0);
@@ -348,7 +362,7 @@ export default function MusicProvider() {
           </span>
         </button>
       ) : (
-        <div className="krt-panel fixed bottom-6 right-6 z-50 w-60 rounded-2xl overflow-hidden text-[#efe6d5]">
+        <div className={`krt-panel fixed bottom-6 right-6 z-50 rounded-2xl overflow-hidden text-[#efe6d5] ${showWrite ? 'w-72 md:w-96' : 'w-60'}`}>
           <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
           <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
           <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
@@ -404,10 +418,30 @@ export default function MusicProvider() {
           </div>
 
           <div className="relative border-t border-[#7FB8E4]/20">
-            <button onClick={() => setShowTracks(p => !p)} className="w-full px-4 py-2.5 flex items-center justify-between text-left">
-              <span className="font-mono text-[10px] tracking-[0.22em] text-[#7FB8E4]/90">SEL / 选曲</span>
-              <span className="text-[#9a8f7a] text-xs">{showTracks ? '▲' : '▼'}</span>
-            </button>
+            <div className="flex items-center">
+              <button onClick={() => { setShowWrite(false); setShowTracks(p => !p); }}
+                className={`flex-1 px-4 py-2.5 flex items-center justify-between text-left ${showTracks ? 'bg-[#7FB8E4]/10' : ''}`}>
+                <span className="font-mono text-[10px] tracking-[0.22em] text-[#7FB8E4]/90">SEL / 选曲</span>
+                <span className="text-[#9a8f7a] text-xs">{showTracks ? '▲' : '▼'}</span>
+              </button>
+              <span className="w-px h-6 bg-[#7FB8E4]/20" />
+              <button onClick={() => { setShowTracks(false); setShowWrite(p => !p); }}
+                className={`flex-1 px-4 py-2.5 flex items-center justify-between text-left ${showWrite ? 'bg-[#7FB8E4]/10' : ''}`}>
+                <span className="font-mono text-[10px] tracking-[0.22em] text-[#7FB8E4]/90">WRITE / 写作助手</span>
+                <span className="text-[#9a8f7a] text-xs">{showWrite ? '▲' : '▼'}</span>
+              </button>
+            </div>
+
+            {showWrite && (
+              <div className="border-t border-[#7FB8E4]/20 max-h-72 overflow-y-auto px-4 py-3 space-y-5">
+                {WRITE_EXAMPLES.map(ex => (
+                  <div key={ex.title}>
+                    <p className="mb-2 font-mono text-[9px] tracking-[0.22em] text-[#7FB8E4]/80">{ex.title}</p>
+                    <div className="krt-md"><Markdown content={ex.md} /></div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {showTracks && (
               <div className="border-t border-[#7FB8E4]/20">
