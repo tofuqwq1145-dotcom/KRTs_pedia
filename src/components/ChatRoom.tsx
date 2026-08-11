@@ -148,7 +148,13 @@ export default function ChatRoom() {
                       <span className="px-1.5 py-0.5 text-[10px] tracking-widest text-archive-paper bg-archive-accent leading-none">{titles[m.user_id]}</span>
                     )}
                     {isBot && <SiteMascot mood="chat" active size={20} />}
-                    <span className={`text-xs tracking-widest ${isBot ? 'text-[#7FB8E4]' : 'text-archive-accent'}`}>{m.author_name}</span>
+                    {isBot ? (
+                      <span className="text-xs tracking-widest text-[#7FB8E4]">{m.author_name}</span>
+                    ) : (
+                      <Link href={`/a/${m.user_id}`} className="text-xs tracking-widest text-archive-accent hover:text-[#7FB8E4] hover:underline underline-offset-4 transition-colors" title="进入主页">
+                        {m.author_name}
+                      </Link>
+                    )}
                   </span>
                   <div className={`flex-1 border px-4 py-2.5 ${isBot ? 'bg-[#7FB8E4]/10 border-[#7FB8E4]/25' : 'bg-archive-bg/60 border-archive-border'}`}>
                     <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{renderStickers(m.content)}</p>
