@@ -316,7 +316,6 @@ export default function MusicProvider() {
         </button>
       ) : (
         <div className="krt-panel fixed bottom-6 right-6 z-50 w-60 rounded-2xl overflow-hidden text-[#efe6d5]">
-          <div className="krt-scanline" />
           <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
           <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
           <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
@@ -324,7 +323,7 @@ export default function MusicProvider() {
 
           <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#7FB8E4]/20">
             <p className="font-mono text-[11px] tracking-[0.28em] text-[#7FB8E4]">
-              KRTP-SCI-P<span className="krt-cursor">▌</span>
+              SCI-Petia<span className="krt-cursor">▌</span>
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#7FB8E4]/30 text-[#7FB8E4]/90">

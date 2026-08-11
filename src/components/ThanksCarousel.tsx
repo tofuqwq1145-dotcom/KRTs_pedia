@@ -46,7 +46,6 @@ export default function ThanksCarousel({ users }: { users: Supporter[] }) {
 
   return (
     <div className="krt-thanks-stage relative min-h-[480px] md:min-h-[520px]">
-      <span className="krt-scanline" />
       <span className="krt-corner top-3 left-3 border-t border-l rounded-tl" />
       <span className="krt-corner top-3 right-3 border-t border-r rounded-tr" />
       <span className="krt-corner bottom-3 left-3 border-b border-l rounded-bl" />

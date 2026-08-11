@@ -35,7 +35,6 @@ export default async function Home() {
           aria-hidden="true"
         />
         <div className="hero-grid absolute inset-0" aria-hidden="true" />
-        <div className="hero-scan absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-0 bg-archive-bg/60" aria-hidden="true" />
         <div className="relative max-w-6xl pl-6 md:pl-20 pr-6 py-28 md:py-36">
           <div className="hero-breathe" aria-hidden="true" />
