@@ -113,9 +113,6 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [coverUrl, setCoverUrl] = useState('');
   const [themeId, setThemeId] = useState('');
   const [themeList, setThemeList] = useState<{ id: string; name: string }[]>([]);
-  const [songList, setSongList] = useState<{ id: string; title: string; url: string }[]>([]);
-  const [songSizes, setSongSizes] = useState<Record<string, number>>({});
-  const [songId, setSongId] = useState('');
   const [songTitle, setSongTitle] = useState('');
   const [songUrl, setSongUrl] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
@@ -142,21 +139,6 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     supabase.from('themes').select('id, name').eq('status', 'approved').order('created_at', { ascending: true }).then(({ data }) => {
       setThemeList((data ?? []) as { id: string; name: string }[]);
     });
-    supabase.from('songs').select('id, title, url').order('sort_order', { ascending: true }).then(async ({ data }) => {
-      const list = (data ?? []) as { id: string; title: string; url: string }[];
-      setSongList(list);
-      const sizes: Record<string, number> = {};
-      await Promise.all(list.map(async s => {
-        try {
-          const res = await fetch(s.url, { method: 'HEAD' });
-          const len = res.headers.get('content-length');
-          if (len) sizes[s.url] = Number(len);
-        } catch {
-          // 忽略无法探测的曲目
-        }
-      }));
-      setSongSizes(sizes);
-    });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { id: data.user.id, display_name: data.user.user_metadata?.display_name } : null);
       setAuthChecked(true);
@@ -179,7 +161,6 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
             setCoverUrl(data.cover_url ?? '');
             setSongUrl((data.song_url ?? '').trim());
             setSongTitle((data.song_title ?? '').trim());
-            setSongId('');
           }
         });
     }
@@ -264,13 +245,6 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     }
   }
 
-  async function onPickSong(id: string) {
-    setSongId(id);
-    const s = songList.find(x => x.id === id);
-    setSongTitle(s?.title ?? '');
-    setSongUrl(s?.url ?? '');
-  }
-
   async function onUploadSong(file: File) {
     setUploadError('');
     if (!user) return setUploadError('请先登录。');
@@ -283,7 +257,6 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
       const url = await uploadAudio(supabase, user.id, file, 1024 * 1024);
       setSongTitle(file.name.replace(/\.[^.]+$/, ''));
       setSongUrl(url);
-      setSongId('');
     } catch (e: any) {
       setUploadError(e.message || '上传失败。');
     } finally {
@@ -449,37 +422,21 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
 
           <div>
             <label className="block text-xs tracking-widest text-archive-muted mb-2">文档配乐（可选，打开该文档时自动循环播放）</label>
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-2">
               <button
                 onClick={() => audioInputRef.current?.click()}
                 disabled={uploading}
                 className="px-4 py-2 border border-archive-border text-xs tracking-widest text-archive-muted hover:border-archive-accent hover:text-archive-accent transition-colors disabled:opacity-50"
               >
-                {uploading ? '上传中…' : songUrl ? (songId ? `已选曲目：${songTitle}` : `已上传：${songTitle || '配乐'}`) : '上传自己的配乐（≤1MB）'}
+                {uploading ? '上传中…' : songUrl ? `已上传：${songTitle || '配乐'}` : '上传自己的配乐（≤1MB）'}
               </button>
               {songUrl && (
-                <button onClick={() => { setSongUrl(''); setSongTitle(''); setSongId(''); }} className="text-xs text-archive-muted hover:text-archive-accent transition-colors">移除</button>
+                <button onClick={() => { setSongUrl(''); setSongTitle(''); }} className="text-xs text-archive-muted hover:text-archive-accent transition-colors">移除</button>
               )}
               <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) onUploadSong(f); }} />
             </div>
-            <p className="text-xs text-archive-muted mb-2 leading-relaxed">支持上传自己的音频（mp3 / m4a / aac / wav / ogg，≤ 1MB）；也可从站内曲库选择：</p>
-            <select
-              value={songId}
-              onChange={e => onPickSong(e.target.value)}
-              className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
-            >
-              <option value="">不设置配乐</option>
-              {songList.map(s => {
-                const over = (songSizes[s.url] ?? 0) > 1024 * 1024;
-                return (
-                  <option key={s.id} value={s.id} disabled={over && s.id !== songId}>
-                    {s.title}{over ? '（超过 1MB，不可作文档配乐）' : ''}
-                  </option>
-                );
-              })}
-            </select>
-            <p className="text-xs text-archive-muted mt-2 leading-relaxed">文档配乐上限 1MB；超限曲目已置灰不可选，但它们仍可在曲库正常播放。</p>
+            <p className="text-xs text-archive-muted leading-relaxed">支持 mp3 / m4a / aac / wav / ogg，单个文件不超过 1MB。</p>
           </div>
 
           <div>
