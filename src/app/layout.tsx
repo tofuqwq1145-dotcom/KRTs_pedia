@@ -1,6 +1,7 @@
 import './globals.css';
 import Navigation from '@/components/Navigation';
 import MusicProvider from '@/components/MusicProvider';
+import PresencePulse from '@/components/PresencePulse';
 import type { Metadata } from 'next';   // ← 新增这行
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navigation />
         <main className="min-h-screen">{children}</main>
         <MusicProvider />
+        <PresencePulse />
         <footer className="border-t border-archive-border mt-24 py-12 bg-archive-paper">
           <div className="max-w-7xl mx-auto px-6 text-center text-xs tracking-widest text-archive-muted leading-loose">
             <p>KRTPEDIA — KRT MEDIEVAL NATIONAL WAR ARCHIVE</p>

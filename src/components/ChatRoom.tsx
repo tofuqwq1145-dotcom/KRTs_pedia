@@ -21,6 +21,7 @@ export default function ChatRoom() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [titles, setTitles] = useState<Record<string, string>>({});
   const listRef = useRef<HTMLDivElement>(null);
 
   const append = useCallback((m: Message) => {
@@ -68,6 +69,23 @@ export default function ChatRoom() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs.length]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data } = await supabase.from('profiles').select('id, title').not('title', 'is', null).neq('title', '');
+        if (!cancelled && data) {
+          const map: Record<string, string> = {};
+          (data as { id: string; title: string }[]).forEach(r => { map[r.id] = r.title; });
+          setTitles(map);
+        }
+      } catch { /* 无称号列时忽略 */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   async function onSend() {
     const content = text.trim();
     if (!content) return;
@@ -112,7 +130,12 @@ export default function ChatRoom() {
             {msgs.length === 0 && <p className="text-sm text-archive-muted tracking-widest">还没有消息，来说第一句话吧。</p>}
             {msgs.map(m => (
               <div key={m.id} className="flex items-start gap-3">
-                <span className="shrink-0 text-xs tracking-widest text-archive-accent mt-1">{m.author_name}</span>
+                <span className="shrink-0 flex items-center gap-1.5 mt-1">
+                  {titles[m.user_id] && (
+                    <span className="px-1.5 py-0.5 text-[10px] tracking-widest text-archive-paper bg-archive-accent leading-none">{titles[m.user_id]}</span>
+                  )}
+                  <span className="text-xs tracking-widest text-archive-accent">{m.author_name}</span>
+                </span>
                 <div className="flex-1 bg-archive-bg/60 border border-archive-border px-4 py-2.5">
                   <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{renderStickers(m.content)}</p>
                   <p className="text-[10px] text-archive-muted tracking-widest mt-1.5">{fmt(m.created_at)}</p>

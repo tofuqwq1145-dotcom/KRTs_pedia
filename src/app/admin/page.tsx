@@ -6,6 +6,7 @@ import SeriesManager from '@/components/SeriesManager';
 import ThemeReview from '@/components/ThemeReview';
 import SongsManager from '@/components/SongsManager';
 import MascotManager from '@/components/MascotManager';
+import UserManager, { type AdminUser } from '@/components/UserManager';
 import Breadcrumb from '@/components/Breadcrumb';
 import { TYPE_LABELS } from '@/lib/pages';
 import type { Metadata } from 'next';
@@ -39,6 +40,24 @@ export default async function AdminPage() {
     supabase.from('mascot_images').select('*', { count: 'exact', head: true }),
     supabase.from('series').select('*', { count: 'exact', head: true }),
   ]);
+
+  const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+
+  let onlineCount = 0;
+  try {
+    const { count } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    onlineCount = count ?? 0;
+  } catch {
+    // last_seen 列未创建时忽略
+  }
+
+  const { data: userRows } = await supabase
+    .from('profiles')
+    .select('id, display_name, title, is_admin, created_at, last_seen')
+    .order('created_at', { ascending: true });
 
   let songCount = 0;
   let musicBytes = 0;
@@ -105,6 +124,8 @@ export default async function AdminPage() {
           <Stat label="聊天消息" value={chatCount ?? 0} />
           <Stat label="站娘配图" value={mascotCount ?? 0} />
           <Stat label="分级系列" value={seriesCount ?? 0} />
+          <Stat label="注册用户" value={usersCount ?? 0} />
+          <Stat label="在线（5 分钟内）" value={onlineCount} />
         </div>
         <div className="mt-6 border border-archive-border bg-archive-paper p-5 text-xs tracking-widest text-archive-muted leading-6">
           <p className="mb-1">· 上传限制：图片 ≤ 5MB，曲库音频 ≤ 30MB，文档配乐 ≤ 1MB（选歌时已置灰超限曲目）。</p>
@@ -147,6 +168,8 @@ export default async function AdminPage() {
       <SongsManager />
 
       <SeriesManager />
+
+      <UserManager users={(userRows ?? []) as AdminUser[]} />
     </div>
   );
 }

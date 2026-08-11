@@ -21,6 +21,7 @@ export default function Discussion({ pageId, slug }: { pageId: string; slug: str
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [titles, setTitles] = useState<Record<string, string>>({});
   const listRef = useRef<HTMLDivElement>(null);
 
   const append = useCallback((c: Comment) => {
@@ -67,6 +68,23 @@ export default function Discussion({ pageId, slug }: { pageId: string; slug: str
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [list.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data } = await supabase.from('profiles').select('id, title').not('title', 'is', null).neq('title', '');
+        if (!cancelled && data) {
+          const map: Record<string, string> = {};
+          (data as { id: string; title: string }[]).forEach(r => { map[r.id] = r.title; });
+          setTitles(map);
+        }
+      } catch { /* 无称号列时忽略 */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   async function onSend() {
     const body = text.trim();
@@ -119,7 +137,12 @@ export default function Discussion({ pageId, slug }: { pageId: string; slug: str
         {list.length === 0 && <p className="text-sm text-archive-muted tracking-widest">还没有讨论，来留下第一条吧。</p>}
         {list.map(c => (
           <div key={c.id} className="flex items-start gap-3">
-            <span className="shrink-0 text-xs tracking-widest text-archive-accent mt-1">{c.author_name}</span>
+            <span className="shrink-0 flex items-center gap-1.5 mt-1">
+              {titles[c.user_id] && (
+                <span className="px-1.5 py-0.5 text-[10px] tracking-widest text-archive-paper bg-archive-accent leading-none">{titles[c.user_id]}</span>
+              )}
+              <span className="text-xs tracking-widest text-archive-accent">{c.author_name}</span>
+            </span>
             <div className="flex-1 bg-archive-paper border border-archive-border px-4 py-3">
               <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{renderStickers(c.body)}</p>
               <div className="flex items-center justify-between mt-2">
