@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TYPE_LABELS } from '@/lib/labels';
+import SiteMascot from '@/components/SiteMascot';
+import { STICKER_MOODS, type MascotMood } from '@/data/mascot';
+
+const BUBBLES = ['>_<', '唔？', '收到', '已归档', '…让我记一下', '♪', '(。-ω-。)', '在的', '咦？'];
 
 interface PetiaRecord {
   id: string;
@@ -20,6 +24,10 @@ interface PetiaLine {
 export default function PetiaMemory() {
   const [records, setRecords] = useState<PetiaRecord[]>([]);
   const [lines, setLines] = useState<PetiaLine[]>([]);
+  const [mood, setMood] = useState<MascotMood>('chat');
+  const [active, setActive] = useState(false);
+  const [bubble, setBubble] = useState<string | null>(null);
+  const bubbleTimer = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +45,20 @@ export default function PetiaMemory() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => () => {
+    if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current);
+  }, []);
+
+  function tapMascot() {
+    const m = STICKER_MOODS[Math.floor(Math.random() * STICKER_MOODS.length)].mood;
+    const a = Math.random() < 0.5;
+    setMood(m);
+    setActive(a);
+    setBubble(BUBBLES[Math.floor(Math.random() * BUBBLES.length)]);
+    if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current);
+    bubbleTimer.current = window.setTimeout(() => setBubble(null), 1400);
+  }
+
   const fmt = (iso: string) => new Date(iso).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   const statusText: Record<string, string> = { pending: '待审', approved: '已录', rejected: '驳回' };
 
@@ -48,6 +70,14 @@ export default function PetiaMemory() {
       <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
 
       <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#7FB8E4]/20">
+        <button onClick={tapMascot} className="relative shrink-0" title="点击召唤，随机切换她的表情动图">
+          {bubble && (
+            <span className="absolute -top-1 right-full mr-2 px-2 py-0.5 rounded-md bg-[#7FB8E4]/15 border border-[#7FB8E4]/40 text-[#bcdcf5] text-[10px] tracking-widest whitespace-nowrap animate-bubble">
+              {bubble}
+            </span>
+          )}
+          <SiteMascot mood={mood} active={active} size={34} />
+        </button>
         <p className="font-mono text-[11px] tracking-[0.28em] text-[#7FB8E4]">MEMORY <span className="krt-cursor">▌</span></p>
         <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#7FB8E4]/30 text-[#7FB8E4]/90">ARCHIVE</span>
       </div>
