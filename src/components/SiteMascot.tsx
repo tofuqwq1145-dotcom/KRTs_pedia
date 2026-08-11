@@ -1,4 +1,31 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { MASCOTS, type MascotMood } from '@/data/mascot';
+
+interface ImgMap { [key: string]: string }
+
+let cachePromise: Promise<ImgMap> | null = null;
+
+function loadImages(): Promise<ImgMap> {
+  if (!cachePromise) {
+    cachePromise = (async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data } = await supabase.from('mascot_images').select('key, image_url');
+        const map: ImgMap = {};
+        for (const r of (data ?? []) as { key: string; image_url: string }[]) {
+          map[r.key] = r.image_url;
+        }
+        return map;
+      } catch {
+        return {};
+      }
+    })();
+  }
+  return cachePromise;
+}
 
 export default function SiteMascot({
   mood = 'home',
@@ -11,12 +38,31 @@ export default function SiteMascot({
   size?: number;
   title?: string;
 }) {
+  const [imgs, setImgs] = useState<ImgMap | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    loadImages().then(map => { if (mounted) setImgs(map); });
+    return () => { mounted = false; };
+  }, []);
+
   const def = MASCOTS[mood];
+  const key = `${mood}-${active ? 'play' : 'pause'}`;
+  const url = imgs?.[key];
+  const bg = `radial-gradient(circle at 35% 30%, ${def.bgB}, ${def.bgA})`;
+
+  if (url) {
+    return (
+      <span className="mascot" style={{ width: size, height: size, background: bg }} title={title ?? def.label} aria-label={def.label}>
+        <img src={url} alt={def.label} className="w-full h-full object-cover" draggable={false} />
+      </span>
+    );
+  }
 
   return (
     <span
       className={`mascot ${active ? 'mascot-play' : 'mascot-idle'}`}
-      style={{ width: size, height: size, background: `radial-gradient(circle at 35% 30%, ${def.bgB}, ${def.bgA})` }}
+      style={{ width: size, height: size, background: bg }}
       title={title ?? def.label}
       aria-label={def.label}
     >

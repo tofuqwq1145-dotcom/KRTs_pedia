@@ -289,6 +289,28 @@ create policy "songs_delete_admin" on public.songs for delete using (public.is_a
 alter table public.pages add column if not exists song_title text not null default '';
 alter table public.pages add column if not exists song_url text not null default '';
 
+-- ---------- mascot_images：站娘动图（形态×播放状态） ----------
+create table if not exists public.mascot_images (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  image_url text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.mascot_images enable row level security;
+
+drop policy if exists "mascot_images_read_public" on public.mascot_images;
+create policy "mascot_images_read_public" on public.mascot_images for select using (true);
+
+drop policy if exists "mascot_images_insert_admin" on public.mascot_images;
+create policy "mascot_images_insert_admin" on public.mascot_images for insert with check (public.is_admin());
+
+drop policy if exists "mascot_images_update_admin" on public.mascot_images;
+create policy "mascot_images_update_admin" on public.mascot_images for update using (public.is_admin());
+
+drop policy if exists "mascot_images_delete_admin" on public.mascot_images;
+create policy "mascot_images_delete_admin" on public.mascot_images for delete using (public.is_admin());
+
 -- ---------- profiles：个人信息扩展 ----------
 alter table public.profiles add column if not exists bio text not null default '';
 alter table public.profiles add column if not exists featured_page_id uuid references public.pages (id) on delete set null;

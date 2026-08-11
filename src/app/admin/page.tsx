@@ -5,6 +5,7 @@ import ReviewPanel from '@/components/ReviewPanel';
 import SeriesManager from '@/components/SeriesManager';
 import ThemeReview from '@/components/ThemeReview';
 import SongsManager from '@/components/SongsManager';
+import MascotManager from '@/components/MascotManager';
 import Breadcrumb from '@/components/Breadcrumb';
 import { TYPE_LABELS } from '@/lib/pages';
 import type { Metadata } from 'next';
@@ -66,6 +67,8 @@ export default async function AdminPage() {
       })}
 
       <ThemeReview />
+
+      <MascotManager />
 
       <SongsManager />
 
