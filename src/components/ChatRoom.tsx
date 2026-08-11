@@ -87,6 +87,19 @@ export default function ChatRoom() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    let stopped = false;
+    let iv: number | null = null;
+    async function tick() {
+      try {
+        await fetch('/api/chat/bot/auto', { method: 'POST', cache: 'no-store' });
+      } catch { /* 忽略网络错误 */ }
+    }
+    if (!stopped) tick();
+    iv = window.setInterval(tick, 20 * 60 * 1000);
+    return () => { stopped = true; if (iv !== null) window.clearInterval(iv); };
+  }, []);
+
   async function onSend() {
     const content = text.trim();
     if (!content) return;
