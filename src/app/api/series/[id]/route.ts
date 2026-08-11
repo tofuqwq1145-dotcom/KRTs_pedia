@@ -1,6 +1,49 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: '请先登录' }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (!profile?.is_admin) {
+    return NextResponse.json({ error: '没有权限' }, { status: 403 });
+  }
+
+  let payload: { name?: string; description?: string; sort_order?: number; parent_id?: string | null; theme_id?: string | null };
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: '请求格式错误' }, { status: 400 });
+  }
+
+  const patch: Record<string, unknown> = {};
+  if (typeof payload.name === 'string') patch.name = payload.name.trim();
+  if (typeof payload.description === 'string') patch.description = payload.description.trim();
+  if (Number.isFinite(Number(payload.sort_order))) patch.sort_order = Math.round(Number(payload.sort_order));
+  if ('parent_id' in payload) patch.parent_id = payload.parent_id || null;
+  if ('theme_id' in payload) patch.theme_id = payload.theme_id || null;
+
+  const { data, error } = await supabase
+    .from('series')
+    .update(patch)
+    .eq('id', params.id)
+    .select('id, slug, name, description, sort_order, parent_id, theme_id')
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json(data);
+}
+
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();

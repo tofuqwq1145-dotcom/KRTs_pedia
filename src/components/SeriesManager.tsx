@@ -70,7 +70,25 @@ export default function SeriesManager() {
     }
   }
 
-  async function onDelete(id: string, name: string) {
+  async function onChangeTheme(id: string, themeId: string) {
+  setError('');
+  setNotice('');
+  try {
+    const res = await fetch(`/api/series/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme_id: themeId || null }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error ?? '更新失败');
+    setList(prev => prev.map(s => (s.id === id ? { ...s, theme_id: themeId || null } : s)));
+    setNotice(`已更新「${json.name}」的版式。`);
+  } catch (e: any) {
+    setError(e.message);
+  }
+}
+
+async function onDelete(id: string, name: string) {
     if (!window.confirm(`确定删除分级「${name}」？其子分级与档案不会被删除，但会解除关联。`)) return;
     setError('');
     setNotice('');
@@ -162,10 +180,17 @@ export default function SeriesManager() {
                 </p>
                 <p className="text-sm text-archive-muted mt-1">{s.description || '暂无描述'}</p>
               </div>
-              <button onClick={() => onDelete(s.id, s.name)} disabled={busy}
-                className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50 shrink-0">
-                删除
-              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <select value={s.theme_id ?? ''} onChange={e => onChangeTheme(s.id, e.target.value)}
+                  className="p-2 border border-archive-border bg-archive-paper outline-none text-xs tracking-widest">
+                  <option value="">默认版式</option>
+                  {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                <button onClick={() => onDelete(s.id, s.name)} disabled={busy}
+                  className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50">
+                  删除
+                </button>
+              </div>
             </div>
           );
         })}
