@@ -4,8 +4,36 @@
 
 @layer base {
   body {
-    @apply bg-archive-bg text-archive-text font-sans antialiased selection:bg-archive-accent selection:text-white;
+    @apply bg-archive-bg text-archive-text font-sans antialiased selection:bg-archive-accent selection:text-black;
   }
+}
+
+/* 首页 hero：半透明背景图 + 暗角金辉兜底 */
+.hero-bg {
+  background-color: #0a0a0a;
+  background-image:
+    radial-gradient(1100px 560px at 50% -8%, rgba(201, 168, 108, 0.12), transparent 58%),
+    radial-gradient(900px 520px at 82% 112%, rgba(201, 168, 108, 0.07), transparent 60%),
+    linear-gradient(180deg, rgba(10, 10, 10, 0.5), rgba(10, 10, 10, 0.86)),
+    url('/hero.jpg');
+  background-size: auto, auto, auto, cover;
+  background-position: center, center, center, center;
+  background-repeat: no-repeat;
+}
+
+/* 文字入场：上移 + 淡入 + 轻微去模糊，错峰播放 */
+@keyframes heroRise {
+  from { opacity: 0; transform: translateY(28px); filter: blur(8px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.anim-rise { animation: heroRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-d1 { animation-delay: 0.05s; }
+.anim-d2 { animation-delay: 0.15s; }
+.anim-d3 { animation-delay: 0.28s; }
+.anim-d4 { animation-delay: 0.42s; }
+.anim-d5 { animation-delay: 0.56s; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise { animation: none; }
 }
 
 .fade-in {

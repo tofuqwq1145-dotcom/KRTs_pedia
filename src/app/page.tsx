@@ -8,15 +8,20 @@ export default async function Home() {
 
   return (
     <div className="fade-in">
-      <section className="max-w-5xl mx-auto px-6 py-32 text-center">
-        <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-tight text-archive-text mb-8">
-          KRTPEDIA <br/>
-          <span className="text-archive-accent font-normal italic text-3xl md:text-5xl mt-4 block">Archive of KRT Medieval</span>
-        </h1>
-        <p className="font-serif text-xl text-archive-muted mb-12 tracking-[0.3em]">« 记录一个世界的诞生、战争、国家与文明。 »</p>
-        <div className="flex justify-center gap-6">
-          <Link href="/nations" className="px-8 py-3 bg-archive-text text-archive-paper text-sm tracking-widest hover:bg-archive-accent transition-colors">进入档案馆</Link>
-          <Link href="/submit" className="px-8 py-3 border border-archive-border text-sm tracking-widest hover:border-archive-text transition-colors">撰写投稿</Link>
+      <section className="relative overflow-hidden border-b border-archive-border">
+        <div className="hero-bg absolute inset-0" aria-hidden="true" />
+        <div className="absolute inset-0 bg-archive-bg/65" aria-hidden="true" />
+        <div className="relative max-w-5xl mx-auto px-6 py-32 md:py-40 text-center">
+          <p className="anim-rise anim-d1 font-mono text-xs md:text-sm tracking-[0.45em] text-archive-accent uppercase mb-8">Medieval Digital Archive</p>
+          <h1 className="font-serif text-5xl md:text-8xl font-bold tracking-tight text-archive-text">
+            <span className="anim-rise anim-d2 block">KRTPEDIA</span>
+            <span className="anim-rise anim-d3 text-archive-accent font-normal italic text-3xl md:text-5xl mt-5 block">Archive of KRT Medieval</span>
+          </h1>
+          <p className="anim-rise anim-d4 font-serif text-xl text-archive-muted mb-12 tracking-[0.3em]">« 记录一个世界的诞生、战争、国家与文明。 »</p>
+          <div className="anim-rise anim-d5 flex justify-center gap-6">
+            <Link href="/nations" className="px-8 py-3 bg-archive-text text-archive-paper text-sm tracking-widest hover:bg-archive-accent transition-colors">进入档案馆</Link>
+            <Link href="/submit" className="px-8 py-3 border border-archive-border text-sm tracking-widest hover:border-archive-accent hover:text-archive-accent transition-colors">撰写投稿</Link>
+          </div>
         </div>
       </section>
 
