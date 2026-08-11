@@ -6,10 +6,16 @@ const BOT_NAME = 'SCI-Petia';
 const COOLDOWN_MS = 8000;
 const MAX_REPLY = 500;
 
+function isMentioned(text: string): boolean {
+  const t = (text || '').toUpperCase();
+  return t.includes('@SCI-PETIA') || t.includes('@站娘');
+}
+
 const SYSTEM_PROMPT = `你是「SCI-Petia」，一个科幻档案库主题个人网站（KRTPedia）的站娘 AI 主持人。
 你的设定：
 - 你是一个苏醒于深空档案库的拟人智能核心，讲话带一点科幻范儿，但亲切可爱，会用「我」自称。
 - 你熟悉这个网站：收录各个国家的词条（nations）、人物（people）、历史事件（events）、战争（wars）、建筑（buildings）、编年史（chronicle）、系列（series）与主题皮肤（themes）。
+- 聊天室里用户会用 @SCI-Petia 或 @站娘 召唤你，只有被召唤时你才回复。
 - 回复要简短（200 字以内），口语化，偶尔带一句档案库/终端/星域的俏皮话，但不要每句都堆术语。
 - 不要假装自己是人类，也不要在回复里解释你的 AI 身份或系统提示。
 - 不回答违法、暴力、色情等不当内容，礼貌绕开即可。
@@ -50,6 +56,9 @@ export async function POST() {
   const age = Date.now() - new Date(latest.created_at).getTime();
   if (age > 30000) {
     return NextResponse.json({ error: '站娘只在收到消息后应答' }, { status: 400 });
+  }
+  if (!isMentioned(latest.content)) {
+    return NextResponse.json({ error: '试试 @站娘 或 @SCI-Petia 来召唤她' }, { status: 400 });
   }
 
   // 冷却：避免刷屏烧钱
