@@ -310,12 +310,5 @@
   background: #7FB8E4; box-shadow: 0 0 10px rgba(127,184,228,0.9);
 }
 @keyframes thanksSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.krt-thanks-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #7FB8E4, #bcdcf5);
-  box-shadow: 0 0 12px rgba(127,184,228,0.6);
-  animation: thanksFill 4.2s linear forwards;
-}
-@keyframes thanksFill { from { width: 0%; } to { width: 100%; } }
 .krt-thanks-caret { animation: krtBlink 1.4s steps(2) infinite; }
 }

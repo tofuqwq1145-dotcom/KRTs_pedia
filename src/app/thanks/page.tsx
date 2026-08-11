@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: '致谢名单 | KRTPedia' };
 
 interface Supporter {
+  id: string;
   display_name: string | null;
   avatar_url: string | null;
   title: string | null;
@@ -18,7 +19,7 @@ export default async function ThanksPage() {
       const supabase = createClient();
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url, title')
+        .select('id, display_name, avatar_url, title')
         .order('display_name', { ascending: true });
       users = (data ?? []) as Supporter[];
     } catch {
