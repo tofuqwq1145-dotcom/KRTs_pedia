@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -120,7 +120,7 @@ export default function ThemeReview() {
   }
 
   return (
-    <section className="mt-14">
+    <section className="mt-0">
       <h2 className="font-serif text-2xl mb-2 text-archive-text border-b border-archive-border pb-4">版式主题审核</h2>
       <p className="text-sm tracking-widest text-archive-muted mb-6 mt-4">每位登录用户均可提交版式，需在此通过后公开展示、供投稿选用。</p>
 

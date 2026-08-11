@@ -90,12 +90,12 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
         <span className="text-xs tracking-widest text-archive-muted shrink-0">显示 {filtered.length} 条</span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-10 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-2">
         {filtered.map(item => (
           <button
             key={item.id}
             onClick={() => setSelected(item)}
-            className="text-left bg-archive-paper border border-archive-border px-3 py-3 flex flex-col gap-1.5 hover:border-archive-accent transition-colors min-w-0"
+            className="text-left bg-archive-bg/50 border border-archive-border px-3 py-3 flex flex-col gap-1.5 hover:border-archive-accent transition-colors min-w-0"
             title="点击查看详情并审核"
           >
             <span className={`self-start px-2 py-0.5 text-[10px] tracking-widest border whitespace-nowrap ${statusStyle[item.status]}`}>{statusText[item.status]}</span>

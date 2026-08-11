@@ -121,7 +121,7 @@ export default async function AdminPage() {
   ] as const;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 fade-in">
+    <div className="max-w-[1600px] mx-auto px-6 py-12 fade-in">
       <Breadcrumb items={[{ label: '站主 · 审核面板' }]} />
       <h1 className="font-serif text-4xl mb-4 text-archive-text border-b border-archive-border pb-6">审核面板（站主）</h1>
       <p className="text-sm tracking-widest text-archive-muted mb-10">逐条审查投稿，通过后内容立即公开。可在备注栏填写驳回理由。</p>
@@ -151,40 +151,44 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      {tabs.map(tab => {
-        const filtered = (pages ?? []).filter(p => p.status === tab.key);
-        const items = filtered.map(p => ({
-          id: p.id,
-          title: p.title,
-          type: p.type,
-          body: p.body,
-          author_name: p.author_name,
-          created_at: p.created_at,
-          status: p.status,
-          review_note: p.review_note ?? '',
-          typeLabel: TYPE_LABELS[p.type as keyof typeof TYPE_LABELS] ?? p.type,
-        }));
-        return (
-          <section key={tab.key} className="mb-14">
-            <h2 className="font-serif text-2xl mb-6 text-archive-text border-b border-archive-border pb-4">
-              {tab.label} <span className="text-archive-muted text-lg">({filtered.length})</span>
-            </h2>
-            <ReviewPanel items={items} />
-          </section>
-        );
-      })}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start mb-14">
+        {tabs.map(tab => {
+          const filtered = (pages ?? []).filter(p => p.status === tab.key);
+          const items = filtered.map(p => ({
+            id: p.id,
+            title: p.title,
+            type: p.type,
+            body: p.body,
+            author_name: p.author_name,
+            created_at: p.created_at,
+            status: p.status,
+            review_note: p.review_note ?? '',
+            typeLabel: TYPE_LABELS[p.type as keyof typeof TYPE_LABELS] ?? p.type,
+          }));
+          return (
+            <section key={tab.key} className="border border-archive-border bg-archive-paper/50 p-5">
+              <h2 className="font-serif text-2xl mb-4 text-archive-text border-b border-archive-border pb-3">
+                {tab.label} <span className="text-archive-muted text-lg">({filtered.length})</span>
+              </h2>
+              <ReviewPanel items={items} />
+            </section>
+          );
+        })}
+      </div>
 
-      <ThemeReview />
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+        <ThemeReview />
 
-      <MascotManager />
+        <MascotManager />
 
-      <SongsManager />
+        <SongsManager />
 
-      <SeriesManager />
+        <SeriesManager />
 
-      <HeroBackground initialUrl={heroUrl} />
+        <HeroBackground initialUrl={heroUrl} />
 
-      <UserManager users={(userRows ?? []) as AdminUser[]} />
+        <UserManager users={(userRows ?? []) as AdminUser[]} />
+      </div>
     </div>
   );
 }

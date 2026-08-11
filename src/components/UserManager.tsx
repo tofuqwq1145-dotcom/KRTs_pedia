@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 
@@ -47,7 +47,7 @@ export default function UserManager({ users: initial }: { users: AdminUser[] }) 
   }
 
   return (
-    <section className="mt-16">
+    <section className="mt-0">
       <h2 className="font-serif text-2xl mb-2 text-archive-text border-b border-archive-border pb-4">用户管理 · 称号授予</h2>
       <p className="text-xs tracking-widest text-archive-muted mb-6">授予/修改用户称号，称号会展示在聊天室与讨论区。在线 = 最近 5 分钟内有活动。</p>
 

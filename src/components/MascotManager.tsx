@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -69,7 +69,7 @@ export default function MascotManager() {
   const moods = Object.entries(MASCOTS) as [MascotMood, (typeof MASCOTS)[MascotMood]][];
 
   return (
-    <section className="mt-14">
+    <section className="mt-0">
       <h2 className="font-serif text-2xl mb-2 text-archive-text border-b border-archive-border pb-4">站娘动图</h2>
       <p className="text-sm tracking-widest text-archive-muted mt-4 mb-6">为每个页面形态分别上传「播放 / 暂停」两张动图（GIF/WebP/APNG）。聊天室表情复用播放动图。未上传的形态会使用内置动效。</p>
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -91,7 +91,7 @@ export default function SongsManager() {
   })).filter(g => g.items.length > 0);
 
   return (
-    <section className="mt-14">
+    <section className="mt-0">
       <h2 className="font-serif text-2xl mb-2 text-archive-text border-b border-archive-border pb-4">站内配乐曲库</h2>
       <p className="text-sm tracking-widest text-archive-muted mt-4 mb-6">为不同页面分类添加背景音乐。上传后访客会随页面自动播放对应歌单，也可在播放器里手动切换。</p>
 

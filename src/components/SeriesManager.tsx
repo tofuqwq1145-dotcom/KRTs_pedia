@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -109,7 +109,7 @@ async function onDelete(id: string, name: string) {
   const labelOf = (s: SeriesRow) => `[${s.slug}] ${s.name}`;
 
   return (
-    <section className="mt-14">
+    <section className="mt-0">
       <h2 className="font-serif text-2xl mb-6 text-archive-text border-b border-archive-border pb-4">分级管理（系列目录，支持子分级）</h2>
 
       <div className="bg-archive-paper border border-archive-border p-6 mb-8 space-y-4">

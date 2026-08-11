@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useState } from 'react';
 import { uploadMedia } from '@/lib/supabase/upload';
@@ -59,7 +59,7 @@ export default function HeroBackground({ initialUrl }: { initialUrl: string }) {
   }
 
   return (
-    <section className="mt-16">
+    <section className="mt-0">
       <h2 className="font-serif text-2xl mb-2 text-archive-text border-b border-archive-border pb-4">首页背景图</h2>
       <p className="text-xs tracking-widest text-archive-muted mb-6">设置首页标题区的半透明背景图（建议横向大图，如中世纪城堡/水墨/星云）。上传后立即生效。</p>
 
