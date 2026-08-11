@@ -6,7 +6,7 @@ import { events } from '@/data/events';
 import { wars } from '@/data/wars';
 import { buildings } from '@/data/buildings';
 import { chronicle } from '@/data/chronicle';
-import type { PageType, PageSummary, WikiPage, Series } from '@/data/types';
+import type { PageType, PageSummary, WikiPage, Series, Theme } from '@/data/types';
 import { TYPE_LABELS } from '@/lib/labels';
 
 export { TYPE_LABELS, TYPE_ROUTES, fmtDate } from '@/lib/labels';
@@ -22,6 +22,13 @@ function excerptOf(body: string, max = 120): string {
   return text.length > max ? text.slice(0, max) + '…' : text;
 }
 
+export function coverOf(body: string): string {
+  const markdown = /!\[[^\]]*\]\(([^)]+)\)/.exec(body);
+  if (markdown) return markdown[1];
+  const html = /<img[^>]+src=["']([^"']+)["']/i.exec(body);
+  return html ? html[1] : '';
+}
+
 function pagesToSummaries(rows: WikiPage[]): PageSummary[] {
   return rows
     .filter(r => r.status === 'approved')
@@ -33,6 +40,10 @@ function pagesToSummaries(rows: WikiPage[]): PageSummary[] {
       author_name: r.author_name,
       created_at: r.created_at,
       excerpt: excerptOf(r.body),
+      cover_url: r.cover_url || coverOf(r.body) || undefined,
+      tags: r.tags ?? [],
+      series_id: r.series_id ?? null,
+      theme_id: r.theme_id ?? null,
     }));
 }
 
@@ -165,6 +176,76 @@ export async function listPagesBySeries(seriesId: string): Promise<PageSummary[]
     console.error('listPagesBySeries error:', err);
     return [];
   }
+}
+
+export async function getSeriesChildren(parentId: string): Promise<Series[]> {
+  const all = await listSeries();
+  return all.filter(s => s.parent_id === parentId);
+}
+
+export async function getSeriesAncestors(series: Series): Promise<Series[]> {
+  const all = await listSeries();
+  const byId = new Map(all.map(s => [s.id, s]));
+  const chain: Series[] = [];
+  let cur = byId.get(series.parent_id ?? '');
+  let guard = 0;
+  while (cur && guard < 20) {
+    chain.unshift(cur);
+    cur = byId.get(cur.parent_id ?? '');
+    guard++;
+  }
+  return chain;
+}
+
+export async function listPagesByAuthor(authorId: string): Promise<PageSummary[]> {
+  if (!supabaseConfigured()) return [];
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('author_id', authorId)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return pagesToSummaries((data ?? []) as WikiPage[]);
+  } catch (err) {
+    console.error('listPagesByAuthor error:', err);
+    return [];
+  }
+}
+
+export async function listThemes(): Promise<Theme[]> {
+  if (!supabaseConfigured()) return [];
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('themes')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as Theme[];
+  } catch (err) {
+    console.error('listThemes error:', err);
+    return [];
+  }
+}
+
+export async function getThemeById(id: string | null | undefined): Promise<Theme | null> {
+  if (!id) return null;
+  const all = await listThemes();
+  return all.find(t => t.id === id) ?? null;
+}
+
+export async function resolveThemeForPage(page: Pick<WikiPage, 'theme_id' | 'series_id'>): Promise<Theme | null> {
+  const pageTheme = await getThemeById(page.theme_id);
+  if (pageTheme) return pageTheme;
+  if (page.series_id) {
+    const all = await listSeries();
+    const series = all.find(s => s.id === page.series_id);
+    if (series?.theme_id) return getThemeById(series.theme_id);
+  }
+  return null;
 }
 
 export async function getStats() {

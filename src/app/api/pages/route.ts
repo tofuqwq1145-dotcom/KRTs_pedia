@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '请先登录' }, { status: 401 });
   }
 
-  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[] };
+  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[]; cover_url?: string; theme_id?: string | null };
   try {
     payload = await request.json();
   } catch {
@@ -60,6 +60,8 @@ export async function POST(request: Request) {
       author_name: profile?.display_name || user.email?.split('@')[0] || '匿名撰稿人',
       series_id: payload.series_id || null,
       tags,
+      cover_url: (payload.cover_url ?? '').trim(),
+      theme_id: payload.theme_id || null,
     })
     .select('id')
     .single();

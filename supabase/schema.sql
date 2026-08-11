@@ -91,9 +91,54 @@ drop policy if exists "series_delete_admin" on public.series;
 create policy "series_delete_admin" on public.series
   for delete using (public.is_admin());
 
--- 兼容已建表：给 pages 补 分级/标签 列
+-- ---------- themes：版式主题（配色 + 信息栏风格） ----------
+create table if not exists public.themes (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  accent text not null default '#8a5a2b',
+  accent_soft text not null default '#a58050',
+  bg text not null default '#f7f3ec',
+  style text not null default 'modern',
+  created_at timestamptz not null default now()
+);
+
+alter table public.themes enable row level security;
+
+create policy "themes_read_public" on public.themes for select using (true);
+create policy "themes_insert_admin" on public.themes for insert with check (public.is_admin());
+create policy "themes_update_admin" on public.themes for update using (public.is_admin());
+create policy "themes_delete_admin" on public.themes for delete using (public.is_admin());
+
+-- 兼容升级列：分级父级 / 主题 / 封面 / 标签
+alter table public.series add column if not exists parent_id uuid references public.series (id) on delete cascade;
+alter table public.series add column if not exists theme_id uuid references public.themes (id) on delete set null;
 alter table public.pages add column if not exists series_id uuid references public.series (id) on delete set null;
 alter table public.pages add column if not exists tags text[] not null default '{}'::text[];
+alter table public.pages add column if not exists cover_url text not null default '';
+alter table public.pages add column if not exists theme_id uuid references public.themes (id) on delete set null;
+
+-- ---------- chat_messages：聊天室 ----------
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  author_name text not null default '',
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.chat_messages enable row level security;
+
+create policy "chat_messages_read_public" on public.chat_messages for select using (true);
+create policy "chat_messages_insert_own" on public.chat_messages
+  for insert with check (auth.uid() = user_id and char_length(content) between 1 and 1000);
+
+-- Realtime 发布（若已在发布中会报错，可忽略）
+alter publication supabase_realtime add table public.chat_messages;
+
+-- ---------- profiles：个人信息扩展 ----------
+alter table public.profiles add column if not exists bio text not null default '';
+alter table public.profiles add column if not exists featured_page_id uuid references public.pages (id) on delete set null;
 
 -- ---------- pages：维基条目（含投稿审核工作流） ----------
 create table if not exists public.pages (

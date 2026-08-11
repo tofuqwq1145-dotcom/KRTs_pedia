@@ -35,6 +35,8 @@ export interface WikiPage {
   updated_at: string;
   series_id?: string | null;
   tags?: string[];
+  cover_url?: string;
+  theme_id?: string | null;
 }
 
 export interface Series {
@@ -43,6 +45,19 @@ export interface Series {
   name: string;
   description: string;
   sort_order: number;
+  created_at: string;
+  parent_id?: string | null;
+  theme_id?: string | null;
+}
+
+export interface Theme {
+  id: string;
+  slug: string;
+  name: string;
+  accent: string;
+  accent_soft: string;
+  bg: string;
+  style: string;
   created_at: string;
 }
 
@@ -54,4 +69,8 @@ export interface PageSummary {
   author_name: string;
   created_at: string;
   excerpt: string;
+  cover_url?: string;
+  tags?: string[];
+  series_id?: string | null;
+  theme_id?: string | null;
 }

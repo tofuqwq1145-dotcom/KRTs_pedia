@@ -108,6 +108,9 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [seriesId, setSeriesId] = useState<string>('');
   const [seriesList, setSeriesList] = useState<{ id: string; name: string }[]>([]);
   const [tags, setTags] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
+  const [themeId, setThemeId] = useState('');
+  const [themeList, setThemeList] = useState<{ id: string; name: string }[]>([]);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<{ id: string; display_name?: string } | null>(null);
   const [error, setError] = useState('');
@@ -116,6 +119,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasBody = body.trim().length > 0;
@@ -126,6 +130,9 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     const supabase = createClient();
     supabase.from('series').select('id, name').order('sort_order', { ascending: true }).then(({ data }) => {
       setSeriesList((data ?? []) as { id: string; name: string }[]);
+    });
+    supabase.from('themes').select('id, name').order('created_at', { ascending: true }).then(({ data }) => {
+      setThemeList((data ?? []) as { id: string; name: string }[]);
     });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { id: data.user.id, display_name: data.user.user_metadata?.display_name } : null);
@@ -145,6 +152,8 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
             setBody(data.body);
             setSeriesId(data.series_id ?? '');
             setTags((data.tags ?? []).join(', '));
+            setThemeId(data.theme_id ?? '');
+            setCoverUrl(data.cover_url ?? '');
           }
         });
     }
@@ -186,6 +195,22 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     }
   }
 
+  async function onUploadCover(file: File) {
+    setUploadError('');
+    if (!user) return setUploadError('请先登录。');
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const url = await uploadMedia(supabase, 'covers', user.id, file);
+      setCoverUrl(url);
+    } catch (e: any) {
+      setUploadError(e.message || '封面上传失败。');
+    } finally {
+      setUploading(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  }
+
   async function onSubmit() {
     setError('');
     setNotice('');
@@ -204,6 +229,8 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
           body,
           series_id: seriesId || null,
           tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
+          cover_url: coverUrl,
+          theme_id: themeId || null,
         }),
       });
       const json = await res.json();
@@ -293,6 +320,48 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
               placeholder="例如：政治, 外交, 同盟"
               className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs tracking-widest text-archive-muted mb-2">版式主题（可选，默认跟随分级）</label>
+              <select
+                value={themeId}
+                onChange={e => setThemeId(e.target.value)}
+                className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
+              >
+                <option value="">跟随分级默认版式</option>
+                {themeList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs tracking-widest text-archive-muted mb-2">封面图（可选，不设置则自动取正文首图）</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={uploading}
+                  className="px-4 py-3 text-xs tracking-widest text-archive-accent border border-archive-accent/40 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50"
+                >
+                  {uploading ? '上传中…' : '选择封面'}
+                </button>
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) onUploadCover(f); }}
+                />
+                {coverUrl ? (
+                  <div className="flex items-center gap-2">
+                    <img src={coverUrl} alt="" className="w-24 h-14 object-cover border border-archive-border" />
+                    <button type="button" onClick={() => setCoverUrl('')} className="text-xs tracking-widest text-archive-muted hover:text-archive-accent">移除</button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-archive-muted">无封面</span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div>

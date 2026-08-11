@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '没有权限' }, { status: 403 });
   }
 
-  let payload: { name?: string; slug?: string; description?: string; sort_order?: number; parent_id?: string | null; theme_id?: string | null };
+  let payload: { name?: string; slug?: string; accent?: string; accent_soft?: string; bg?: string; style?: string };
   try {
     payload = await request.json();
   } catch {
@@ -26,19 +26,21 @@ export async function POST(request: Request) {
 
   const name = (payload.name ?? '').trim();
   const slug = (payload.slug ?? '').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  const description = (payload.description ?? '').trim();
-  const sort_order = Number.isFinite(Number(payload.sort_order)) ? Math.round(Number(payload.sort_order)) : 0;
-  const parent_id = payload.parent_id || null;
-  const theme_id = payload.theme_id || null;
+  if (!name) return NextResponse.json({ error: '主题名称不能为空' }, { status: 400 });
+  if (!slug) return NextResponse.json({ error: '主题标识（Slug）不能为空' }, { status: 400 });
 
-  if (!name) return NextResponse.json({ error: '分级名称不能为空' }, { status: 400 });
-  if (!slug) return NextResponse.json({ error: '分级标识（Slug）不能为空' }, { status: 400 });
-  if (parent_id === slug) return NextResponse.json({ error: '父分级不能是自身' }, { status: 400 });
+  const accent = (payload.accent ?? '').trim() || '#8a5a2b';
+  const accentSoft = (payload.accent_soft ?? '').trim() || accent;
+  const bg = (payload.bg ?? '').trim() || '#f7f3ec';
+  const style = ['modern', 'scp', 'classic'].includes(payload.style ?? '') ? (payload.style as string) : 'modern';
+
+  const hexOk = /^#[0-9a-fA-F]{6}$/.test(accent) || /^#[0-9a-fA-F]{3}$/.test(accent);
+  if (accent && !hexOk) return NextResponse.json({ error: '主色需为 #RRGGBB 格式' }, { status: 400 });
 
   const { data, error } = await supabase
-    .from('series')
-    .insert({ name, slug, description, sort_order, parent_id, theme_id })
-    .select('id, slug, name, description, sort_order, parent_id, theme_id')
+    .from('themes')
+    .insert({ name, slug, accent, accent_soft: accentSoft, bg, style })
+    .select('id, slug, name, accent, accent_soft, bg, style')
     .single();
 
   if (error) {

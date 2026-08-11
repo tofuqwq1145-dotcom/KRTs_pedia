@@ -48,7 +48,7 @@ export async function PUT(
     return NextResponse.json({ error: '只能修改自己的投稿' }, { status: 403 });
   }
 
-  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[] };
+  let payload: { title?: string; slug?: string; type?: string; body?: string; series_id?: string | null; tags?: string[]; cover_url?: string; theme_id?: string | null };
   try {
     payload = await request.json();
   } catch {
@@ -74,6 +74,8 @@ export async function PUT(
       body,
       series_id: payload.series_id || null,
       tags,
+      cover_url: (payload.cover_url ?? '').trim(),
+      theme_id: payload.theme_id || null,
       status: isAdmin && existing.status === 'approved' ? 'approved' : 'pending',
       review_note: '',
       reviewed_by: null,

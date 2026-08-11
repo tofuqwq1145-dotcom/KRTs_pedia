@@ -1,4 +1,4 @@
-import { getPageBySlug, getSeriesName, fmtDate } from '@/lib/pages';
+import { getPageBySlug, getSeriesName, fmtDate, resolveThemeForPage } from '@/lib/pages';
 import { notFound } from 'next/navigation';
 import Breadcrumb from '@/components/Breadcrumb';
 import Markdown from '@/components/Markdown';
@@ -21,6 +21,8 @@ export default async function PageDetail({ params }: { params: { slug: string } 
   if (!page) notFound();
   const seriesName = await getSeriesName(page.series_id);
   const tags = page.tags ?? [];
+  const theme = await resolveThemeForPage(page);
+  const accent = theme?.accent ?? '#8a5a2b';
 
   const infoRows = [
     { label: '分类', value: `${TYPE_LABELS[page.type] ?? page.type}（${TYPE_ROUTES[page.type] ? '列表页可见' : '自由档案'}）` },
@@ -35,7 +37,7 @@ export default async function PageDetail({ params }: { params: { slug: string } 
       <div className="bg-archive-paper border border-archive-border">
         <div className="p-8 md:p-12 pb-0">
           <div className="text-center mb-8">
-            <p className="text-xs text-archive-muted tracking-[0.25em] uppercase mb-3">
+            <p className="text-xs text-archive-accent tracking-[0.25em] uppercase mb-3">
               {seriesName ? `${seriesName} · ` : ''}档案编号 {page.slug}
             </p>
             <h1 className="font-serif text-4xl md:text-5xl text-archive-text mb-4">{page.title}</h1>
@@ -44,10 +46,10 @@ export default async function PageDetail({ params }: { params: { slug: string } 
             </p>
           </div>
 
-          <div className="border border-archive-border mb-8">
+          <div className="border mb-8" style={{ borderColor: accent }}>
             {infoRows.map((row, i) => (
               <div key={row.label} className={`flex items-center text-sm ${i !== infoRows.length - 1 ? 'border-b border-archive-border' : ''}`}>
-                <div className="w-32 shrink-0 px-4 py-3 bg-archive-bg/50 text-archive-muted tracking-widest">{row.label}</div>
+                <div className="w-32 shrink-0 px-4 py-3 text-archive-muted tracking-widest" style={{ background: `${accent}14` }}>{row.label}</div>
                 <div className="px-4 py-3 text-archive-text">{row.value}</div>
               </div>
             ))}
@@ -56,8 +58,14 @@ export default async function PageDetail({ params }: { params: { slug: string } 
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-8">
               {tags.map(t => (
-                <span key={t} className="px-3 py-1 border border-archive-accent/40 text-archive-accent text-xs tracking-widest"># {t}</span>
+                <span key={t} className="px-3 py-1 border text-xs tracking-widest" style={{ borderColor: `${accent}66`, color: accent }}># {t}</span>
               ))}
+            </div>
+          )}
+
+          {page.cover_url && (
+            <div className="mb-8 aspect-[21/9] overflow-hidden border border-archive-border">
+              <img src={page.cover_url} alt={page.title} className="w-full h-full object-cover" />
             </div>
           )}
         </div>

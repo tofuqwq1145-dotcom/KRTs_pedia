@@ -9,12 +9,17 @@ interface SeriesRow {
   name: string;
   description: string;
   sort_order: number;
+  parent_id?: string | null;
+  theme_id?: string | null;
 }
 
 export default function SeriesManager() {
   const [list, setList] = useState<SeriesRow[]>([]);
+  const [themes, setThemes] = useState<{ id: string; name: string }[]>([]);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [parentId, setParentId] = useState<string>('');
+  const [themeId, setThemeId] = useState<string>('');
   const [description, setDescription] = useState('');
   const [sortOrder, setSortOrder] = useState(0);
   const [error, setError] = useState('');
@@ -23,15 +28,15 @@ export default function SeriesManager() {
 
   useEffect(() => {
     const supabase = createClient();
-    let cancelled = false;
     const load = () => {
-      if (!supabase) return;
       supabase.from('series').select('*').order('sort_order', { ascending: true }).then((r: any) => {
-        if (!cancelled && !r.error) setList(r.data ?? []);
+        if (!r.error) setList(r.data ?? []);
+      });
+      supabase.from('themes').select('id, name').order('created_at', { ascending: true }).then((r: any) => {
+        if (!r.error) setThemes(r.data ?? []);
       });
     };
     load();
-    return () => { cancelled = true; };
   }, []);
 
   async function onCreate() {
@@ -46,7 +51,7 @@ export default function SeriesManager() {
       const res = await fetch('/api/series', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), slug: slug.trim(), description: description.trim(), sort_order: sortOrder }),
+        body: JSON.stringify({ name: name.trim(), slug: slug.trim(), description: description.trim(), sort_order: sortOrder, parent_id: parentId || null, theme_id: themeId || null }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? '创建失败');
@@ -54,6 +59,8 @@ export default function SeriesManager() {
       setList(prev => [...prev, json].sort((a: any, b: any) => a.sort_order - b.sort_order));
       setName('');
       setSlug('');
+      setParentId('');
+      setThemeId('');
       setDescription('');
       setSortOrder(0);
     } catch (e: any) {
@@ -64,7 +71,7 @@ export default function SeriesManager() {
   }
 
   async function onDelete(id: string, name: string) {
-    if (!window.confirm(`确定删除分级「${name}」？档案不会被删除，但会取消该分级关联。`)) return;
+    if (!window.confirm(`确定删除分级「${name}」？其子分级与档案不会被删除，但会解除关联。`)) return;
     setError('');
     setNotice('');
     setBusy(true);
@@ -81,9 +88,11 @@ export default function SeriesManager() {
     }
   }
 
+  const labelOf = (s: SeriesRow) => `[${s.slug}] ${s.name}`;
+
   return (
     <section className="mt-14">
-      <h2 className="font-serif text-2xl mb-6 text-archive-text border-b border-archive-border pb-4">分级管理（系列目录）</h2>
+      <h2 className="font-serif text-2xl mb-6 text-archive-text border-b border-archive-border pb-4">分级管理（系列目录，支持子分级）</h2>
 
       <div className="bg-archive-paper border border-archive-border p-6 mb-8 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -96,6 +105,24 @@ export default function SeriesManager() {
             <label className="block text-xs tracking-widest text-archive-muted mb-2">分级标识 Slug *（用于网址，如 politics）</label>
             <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-'))} placeholder="politics"
               className="w-full p-3 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs tracking-widest text-archive-muted mb-2">父分级（可选，作为子分级挂到某个分级下）</label>
+            <select value={parentId} onChange={e => setParentId(e.target.value)}
+              className="w-full p-3 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest">
+              <option value="">顶级分级（不挂靠）</option>
+              {list.map(s => <option key={s.id} value={s.id}>{labelOf(s)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs tracking-widest text-archive-muted mb-2">版式主题（可选，该分级下所有条目使用此版式）</label>
+            <select value={themeId} onChange={e => setThemeId(e.target.value)}
+              className="w-full p-3 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest">
+              <option value="">默认版式</option>
+              {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -123,18 +150,25 @@ export default function SeriesManager() {
       </div>
 
       <div className="space-y-3">
-        {list.map(s => (
-          <div key={s.id} className="bg-archive-paper border border-archive-border p-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-serif text-lg text-archive-text">{s.name} <span className="text-xs text-archive-muted tracking-widest">/ {s.slug} / 排序 {s.sort_order}</span></p>
-              <p className="text-sm text-archive-muted mt-1">{s.description || '暂无描述'}</p>
+        {list.map(s => {
+          const parent = list.find(p => p.id === s.parent_id);
+          const theme = themes.find(t => t.id === s.theme_id);
+          return (
+            <div key={s.id} className="bg-archive-paper border border-archive-border p-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="font-serif text-lg text-archive-text">
+                  {parent ? <span className="text-archive-muted text-sm">⊢ </span> : ''}{s.name}{' '}
+                  <span className="text-xs text-archive-muted tracking-widest">/ {s.slug}{parent ? ` / 父级：${parent.name}` : ''}{theme ? ` / 版式：${theme.name}` : ''} / 排序 {s.sort_order}</span>
+                </p>
+                <p className="text-sm text-archive-muted mt-1">{s.description || '暂无描述'}</p>
+              </div>
+              <button onClick={() => onDelete(s.id, s.name)} disabled={busy}
+                className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50 shrink-0">
+                删除
+              </button>
             </div>
-            <button onClick={() => onDelete(s.id, s.name)} disabled={busy}
-              className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50 shrink-0">
-              删除
-            </button>
-          </div>
-        ))}
+          );
+        })}
         {list.length === 0 && <p className="text-sm text-archive-muted">还没有分级，可先创建第一个。</p>}
       </div>
     </section>
