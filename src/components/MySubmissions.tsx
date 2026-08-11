@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Submission {
   id: string;
@@ -25,8 +26,20 @@ const statusText: Record<Submission['status'], string> = {
 };
 
 export default function MySubmissions({ pages }: { pages: Submission[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Submission['status']>('all');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function onDelete(p: Submission) {
+    if (!window.confirm(`确定永久删除「${p.title}」？该操作不可恢复。`)) return;
+    setBusyId(p.id);
+    const res = await fetch(`/api/pages/${p.id}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!res.ok) alert(json.error || '删除失败');
+    setBusyId(null);
+    router.refresh();
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -88,6 +101,10 @@ export default function MySubmissions({ pages }: { pages: Submission[] }) {
                 <Link href={`/submit?edit=${p.id}`} className="text-sm tracking-widest text-archive-accent hover:underline">
                   {p.status === 'approved' ? '编辑' : p.status === 'rejected' ? '重新编辑' : '修改'}
                 </Link>
+                <button onClick={() => onDelete(p)} disabled={busyId === p.id}
+                  className="text-sm tracking-widest text-[#b91c1c] hover:underline disabled:opacity-50">
+                  {busyId === p.id ? '删除…' : '删除'}
+                </button>
               </div>
             </div>
           ))}

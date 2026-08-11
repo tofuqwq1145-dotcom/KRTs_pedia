@@ -58,6 +58,17 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
     router.refresh();
   }
 
+  async function onDelete(item: ReviewItem) {
+    if (!window.confirm(`确定永久删除「${item.title}」？该操作不可恢复。`)) return;
+    setBusy(item.id);
+    const res = await fetch(`/api/pages/${item.id}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!res.ok) alert(json.error || '删除失败');
+    setBusy(null);
+    setSelected(null);
+    router.refresh();
+  }
+
   if (items.length === 0) {
     return (
       <div className="py-16 text-center border border-archive-border bg-archive-paper">
@@ -143,6 +154,13 @@ export default function ReviewPanel({ items }: { items: ReviewItem[] }) {
                     驳回
                   </button>
                 )}
+                <button
+                  onClick={() => onDelete(selected)}
+                  disabled={busy === selected.id}
+                  className="px-6 py-3 bg-[#b91c1c] text-white text-sm tracking-widest hover:bg-[#8f1414] transition-colors disabled:opacity-50"
+                >
+                  删除
+                </button>
               </div>
               {selected.review_note && selected.status === 'rejected' && (
                 <p className="mt-3 text-xs text-archive-accent tracking-widest">已填驳回理由：{selected.review_note}</p>

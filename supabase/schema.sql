@@ -395,6 +395,11 @@ drop policy if exists "pages_delete_admin" on public.pages;
 create policy "pages_delete_admin" on public.pages
   for delete using (public.is_admin());
 
+-- 作者可删除自己的条目
+drop policy if exists "pages_delete_own" on public.pages;
+create policy "pages_delete_own" on public.pages
+  for delete using (auth.uid() = author_id);
+
 create index if not exists pages_status_idx on public.pages (status);
 create index if not exists pages_type_idx on public.pages (type);
 create index if not exists pages_author_idx on public.pages (author_id);
@@ -414,6 +419,32 @@ drop trigger if exists pages_set_updated on public.pages;
 create trigger pages_set_updated
   before update on public.pages
   for each row execute procedure public.handle_pages_updated();
+
+-- ---------- site_settings：站点级配置（首页背景图等） ----------
+create table if not exists public.site_settings (
+  key text primary key,
+  value text not null default ''
+);
+
+alter table public.site_settings enable row level security;
+
+-- 任何人可读（首页渲染需要）
+drop policy if exists "site_settings_read_public" on public.site_settings;
+create policy "site_settings_read_public" on public.site_settings
+  for select using (true);
+
+-- 站主可写入 / 修改
+drop policy if exists "site_settings_insert_admin" on public.site_settings;
+create policy "site_settings_insert_admin" on public.site_settings
+  for insert to authenticated with check (public.is_admin_ss());
+
+drop policy if exists "site_settings_update_admin" on public.site_settings;
+create policy "site_settings_update_admin" on public.site_settings
+  for update to authenticated using (public.is_admin_ss());
+
+drop policy if exists "site_settings_delete_admin" on public.site_settings;
+create policy "site_settings_delete_admin" on public.site_settings
+  for delete to authenticated using (public.is_admin_ss());
 
 -- 公开类型统计（首页数字用）
 create or replace function public.page_stats()

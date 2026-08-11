@@ -7,6 +7,7 @@ import ThemeReview from '@/components/ThemeReview';
 import SongsManager from '@/components/SongsManager';
 import MascotManager from '@/components/MascotManager';
 import UserManager, { type AdminUser } from '@/components/UserManager';
+import HeroBackground from '@/components/HeroBackground';
 import Breadcrumb from '@/components/Breadcrumb';
 import { TYPE_LABELS } from '@/lib/pages';
 import type { Metadata } from 'next';
@@ -58,6 +59,18 @@ export default async function AdminPage() {
     .from('profiles')
     .select('id, display_name, title, is_admin, created_at, last_seen')
     .order('created_at', { ascending: true });
+
+  let heroUrl = '';
+  try {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'hero_image_url')
+      .maybeSingle();
+    heroUrl = data?.value ?? '';
+  } catch {
+    heroUrl = '';
+  }
 
   let songCount = 0;
   let musicBytes = 0;
@@ -168,6 +181,8 @@ export default async function AdminPage() {
       <SongsManager />
 
       <SeriesManager />
+
+      <HeroBackground initialUrl={heroUrl} />
 
       <UserManager users={(userRows ?? []) as AdminUser[]} />
     </div>

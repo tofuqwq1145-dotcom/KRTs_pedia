@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --archive-bg: 8 11 15;          /* #080B0F */
+  --archive-paper: 16 21 27;      /* #10151B */
+  --archive-text: 231 237 244;    /* #E7EDF4 */
+  --archive-muted: 140 151 168;   /* #8C97A8 */
+  --archive-accent: 127 184 228;  /* #7FB8E4 */
+  --archive-border: 34 48 65;     /* #223041 */
+}
+
 @layer base {
   body {
     @apply bg-archive-bg text-archive-text font-sans antialiased selection:bg-archive-accent selection:text-black;
@@ -73,6 +82,17 @@
 .hud-cr-tr { top: -18px; right: -18px; border-top-width: 1px; border-right-width: 1px; }
 .hud-cr-bl { bottom: -18px; left: -18px; border-bottom-width: 1px; border-left-width: 1px; }
 .hud-cr-br { bottom: -18px; right: -18px; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* 全局科幻扫描线覆盖层（透明、不拦截点击） */
+.site-scan {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(127, 184, 228, 0.016) 0 1px, transparent 1px 3px);
+}
+.site-scan::after {
+  content: ''; position: absolute; left: 0; right: 0; top: -30%; height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(127, 184, 228, 0.05), rgba(127, 184, 228, 0.10), rgba(127, 184, 228, 0.05), transparent);
+  animation: heroScan 9s linear infinite;
+}
 
 /* 文字入场：上移 + 淡入 + 轻微去模糊，错峰播放 */
 @keyframes heroRise {

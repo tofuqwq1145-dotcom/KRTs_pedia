@@ -10,6 +10,14 @@ import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
+function rgbTrip(hex: string): string {
+  let h = (hex || '').replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  if (isNaN(n) || h.length !== 6) return '8 11 15';
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const page = await getPageBySlug(params.slug);
   if (!page) return {};
@@ -41,6 +49,14 @@ export default async function PageDetail({ params }: { params: { slug: string } 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 fade-in"
       style={theme?.bg_image ? { backgroundImage: `url(${theme.bg_image})`, backgroundSize: 'cover', backgroundAttachment: 'fixed', backgroundPosition: 'center' } : undefined}>
+      {theme && (
+        <style>{`:root {
+          --archive-accent: ${rgbTrip(theme.accent || '#7FB8E4')};
+          --archive-bg: ${rgbTrip(theme.bg || '#080B0F')};
+          --archive-paper: ${rgbTrip(theme.bg || '#10151B')};
+          --archive-text: ${rgbTrip(theme.body_color || '#E7EDF4')};
+        }`}</style>
+      )}
       <Breadcrumb items={[{ label: TYPE_LABELS[page.type], path: TYPE_ROUTES[page.type] }, { label: page.title }]} />
       <div className="bg-archive-paper border border-archive-border" style={theme?.bg ? { background: theme.bg } : undefined}>
         <div className={`px-8 md:px-12 pt-10 text-center ${animationClass(theme?.header_animation)}`} style={{ background: banner }}>

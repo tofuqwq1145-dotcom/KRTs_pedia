@@ -1,15 +1,39 @@
 import Link from 'next/link';
 import { getLatestPages, TYPE_LABELS, fmtDate } from '@/lib/pages';
+import { createClient, supabaseConfigured } from '@/lib/supabase/server';
 import ChatRoom from '@/components/ChatRoom';
 import Announcements from '@/components/Announcements';
 
 export default async function Home() {
   const latest = await getLatestPages(4);
 
+  let heroUrl = '';
+  if (supabaseConfigured()) {
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'hero_image_url')
+        .maybeSingle();
+      heroUrl = data?.value ?? '';
+    } catch {
+      heroUrl = '';
+    }
+  }
+
   return (
     <div className="fade-in">
       <section className="relative overflow-hidden border-b border-archive-border">
-        <div className="hero-bg absolute inset-0" aria-hidden="true" />
+        <div
+          className="hero-bg absolute inset-0"
+          style={heroUrl ? {
+            backgroundImage: `radial-gradient(1100px 560px at 50% -8%, rgba(127,184,228,0.16), transparent 58%), radial-gradient(900px 520px at 82% 112%, rgba(23,55,94,0.55), transparent 60%), linear-gradient(180deg, rgba(8,11,15,0.5), rgba(8,11,15,0.88)), url('${heroUrl}')`,
+            backgroundSize: 'auto, auto, auto, cover',
+            backgroundPosition: 'center, center, center, center',
+          } : undefined}
+          aria-hidden="true"
+        />
         <div className="hero-grid absolute inset-0" aria-hidden="true" />
         <div className="hero-scan absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-0 bg-archive-bg/60" aria-hidden="true" />

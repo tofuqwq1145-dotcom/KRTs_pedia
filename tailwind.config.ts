@@ -10,12 +10,12 @@ const config: Config = {
     extend: {
       colors: {
         archive: {
-          bg: "#080B0F",
-          paper: "#10151B",
-          text: "#E7EDF4",
-          muted: "#8C97A8",
-          accent: "#7FB8E4",
-          border: "#223041",
+          bg: "rgb(var(--archive-bg) / <alpha-value>)",
+          paper: "rgb(var(--archive-paper) / <alpha-value>)",
+          text: "rgb(var(--archive-text) / <alpha-value>)",
+          muted: "rgb(var(--archive-muted) / <alpha-value>)",
+          accent: "rgb(var(--archive-accent) / <alpha-value>)",
+          border: "rgb(var(--archive-border) / <alpha-value>)",
         }
       },
       fontFamily: {

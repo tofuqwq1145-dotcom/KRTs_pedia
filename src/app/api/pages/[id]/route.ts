@@ -108,3 +108,45 @@ export async function PUT(
 
   return NextResponse.json({ message: '已保存并重新提交审核。' });
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { id: string } },
+) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: '请先登录' }, { status: 401 });
+  }
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('pages')
+    .select('id, author_id')
+    .eq('id', params.id)
+    .maybeSingle();
+
+  if (fetchError || !existing) {
+    return NextResponse.json({ error: '条目不存在' }, { status: 404 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle();
+  const isAdmin = !!profile?.is_admin;
+  if (existing.author_id !== user.id && !isAdmin) {
+    return NextResponse.json({ error: '只能删除自己的投稿' }, { status: 403 });
+  }
+
+  const { error } = await supabase
+    .from('pages')
+    .delete()
+    .eq('id', params.id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ message: '已删除该档案。' });
+}
