@@ -1,5 +1,14 @@
 import Breadcrumb from '@/components/Breadcrumb';
 import Link from 'next/link';
+
+const EXTERNAL_LINKS = [
+  { label: '站长 · 哔哩哔哩', href: 'https://space.bilibili.com/YOUR_UID' },
+  { label: '站长 · 抖音', href: 'https://www.douyin.com/user/YOUR_UID' },
+  { label: '服务器主 · 哔哩哔哩', href: 'https://space.bilibili.com/YOUR_UID' },
+  { label: '服务器主 · 抖音', href: 'https://www.douyin.com/user/YOUR_UID' },
+  { label: '相关视频合集', href: 'https://space.bilibili.com/YOUR_UID/video' },
+];
+
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 fade-in">
@@ -16,6 +25,21 @@ export default function AboutPage() {
       </div>
       <div className="mt-8 text-center">
         <Link href="/thanks" className="text-sm tracking-widest text-archive-accent hover:underline">查看致谢名单 →</Link>
+      </div>
+
+      <div className="mt-8 bg-archive-paper border border-archive-border p-8 md:p-12 text-archive-text leading-loose">
+        <h2 className="font-serif text-2xl mb-8 border-l-4 border-archive-accent pl-4">外部联动</h2>
+        <p className="text-sm text-archive-muted mb-6">关注站长的创作动态，或在其他平台看到更多关于 KRT 的记录与视频。</p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {EXTERNAL_LINKS.map(l => (
+            <li key={l.label}>
+              <a href={l.href} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between border border-archive-border px-4 py-3 text-sm transition-colors hover:border-archive-accent hover:text-archive-accent">
+                <span>{l.label}</span>
+                <span className="text-archive-muted group-hover:text-archive-accent">↗</span>
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

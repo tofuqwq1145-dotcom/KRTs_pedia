@@ -42,6 +42,14 @@ const TYPE_PLAYLIST: Record<string, string> = {
   series: 'series',
 };
 
+function fmtSize(bytes: number | null): string {
+  if (!bytes || bytes <= 0) return '未知';
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 100) return `${Math.round(mb)} MB`;
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  return `${Math.max(Math.round(bytes / 1024), 1)} KB`;
+}
+
 function shuffled<T>(arr: T[]): T[] {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -81,6 +89,9 @@ export default function MusicProvider() {
   const [cacheOn, setCacheOn] = useState(false);
   const [srcUrl, setSrcUrl] = useState<string | null>(null);
   const [dl, setDl] = useState<Record<string, number>>({});
+  const [dlModal, setDlModal] = useState<'hidden' | 'prompt' | 'downloading' | 'done'>('hidden');
+  const [dlScope, setDlScope] = useState<string[]>([]);
+  const [dlTotalBytes, setDlTotalBytes] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fadeTimer = useRef<number | null>(null);
   const appliedSrc = useRef<string | null>(null);
@@ -234,6 +245,73 @@ export default function MusicProvider() {
     })();
     return () => { cancelled = true; };
   }, [songs]);
+
+  useEffect(() => {
+    if (songs.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      if (!(await isAudioCacheSupported())) return;
+      let skip = false;
+      let done = false;
+      try { skip = window.localStorage.getItem('krt-music-dl-skip') === '1'; } catch { /* 忽略 */ }
+      try { done = window.localStorage.getItem('krt-music-dl-done') === '1'; } catch { /* 忽略 */ }
+      if (skip || done) return;
+
+      const uniq: string[] = [];
+      for (const s of songs) {
+        if (s.url && !uniq.includes(s.url)) uniq.push(s.url);
+      }
+      const cached = await Promise.all(uniq.map(u => isAudioCached(u)));
+      const uncached = uniq.filter((_, i) => !cached[i]);
+      if (cancelled || uncached.length === 0) return;
+
+      const sizes: number[] = await Promise.all(uncached.map(async u => {
+        try {
+          const r = await fetch(u, { method: 'HEAD', cache: 'no-store' });
+          if (!r.ok) return 0;
+          const cr = r.headers.get('content-range');
+          const cl = r.headers.get('content-length');
+          if (cr) {
+            const m = cr.match(/\/(\d+)$/);
+            if (m) return Number(m[1]) || 0;
+          }
+          if (cl) return Number(cl) || 0;
+        } catch { /* 大小未知 */ }
+        return 0;
+      }));
+      if (cancelled) return;
+      setDlScope(uncached);
+      setDlTotalBytes(sizes.reduce((a, b) => a + b, 0) || null);
+      setDlModal('prompt');
+    })();
+    return () => { cancelled = true; };
+  }, [songs]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('krt-sci-panel', collapsed ? '1' : '0');
+    } catch { /* 忽略写入失败 */ }
+  }, [collapsed]);
+
+  async function startFullDownload() {
+    setDlModal('downloading');
+    for (const u of dlScope) {
+      await doDownload(u);
+    }
+    try { window.localStorage.setItem('krt-music-dl-done', '1'); } catch { /* 忽略 */ }
+    if (current?.url) applySource(current.url);
+    setDlModal('done');
+  }
+
+  function dismissDlPrompt() {
+    try { window.localStorage.setItem('krt-music-dl-skip', '1'); } catch { /* 忽略 */ }
+    setDlModal('hidden');
+  }
+
+  const dlDoneCount = dlScope.filter(u => dl[u] === 100).length;
+  const dlProgress = dlScope.length
+    ? dlScope.reduce((acc, u) => acc + Math.min((dl[u] ?? 0), 100), 0) / dlScope.length
+    : 0;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -472,6 +550,64 @@ export default function MusicProvider() {
 
   return (
     <>
+      {dlModal !== 'hidden' && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="krt-panel relative w-full max-w-sm rounded-2xl text-[#efe6d5] p-6">
+            <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
+            <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
+            <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
+            <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
+
+            <p className="font-mono text-[10px] tracking-[0.28em] text-[#7FB8E4]">SCI-PETIA · 音频预载</p>
+
+            {dlModal === 'prompt' && (
+              <>
+                <p className="mt-4 text-sm text-[#f3ead8] leading-relaxed">
+                  检测到 <span className="text-[#7FB8E4]">{dlScope.length} 首</span> 音频尚未缓存。下载后共约
+                  <span className="text-[#7FB8E4]"> {fmtSize(dlTotalBytes)}</span>，可保证全站音乐的流畅播放体验（支持离线）。
+                </p>
+                <p className="mt-2 text-[11px] text-[#9a8f7a] leading-relaxed">仅在首次进入或缓存被清除时提示一次，可随时在播放器里「⬇ 全部」补下。</p>
+                <div className="mt-5 flex items-center gap-2">
+                  <button onClick={startFullDownload} className="flex-1 py-2.5 bg-[#7FB8E4] text-[#0c1521] text-xs font-mono tracking-[0.2em] rounded hover:bg-[#9ecfe9] transition-colors">
+                    开始下载
+                  </button>
+                  <button onClick={dismissDlPrompt} className="flex-1 py-2.5 border border-[#7FB8E4]/30 text-[#9a8f7a] text-xs font-mono tracking-[0.2em] rounded hover:text-white transition-colors">
+                    以后再说
+                  </button>
+                </div>
+              </>
+            )}
+
+            {dlModal !== 'prompt' && (
+              <>
+                <p className="mt-4 text-sm text-[#f3ead8]">
+                  {dlModal === 'downloading' ? '正在预载全部音频……' : '全部音频已缓存完成 ✓'}
+                </p>
+                <div className="mt-3">
+                  <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-[#7FB8E4] transition-all duration-200" style={{ width: `${dlProgress}%` }} />
+                  </div>
+                  <p className="mt-1.5 flex justify-between font-mono text-[10px] text-[#9a8f7a]">
+                    <span>{dlModal === 'downloading' ? `${dlDoneCount} / ${dlScope.length} 首` : 'COMPLETE'}</span>
+                    <span>{dlModal === 'downloading' ? `${Math.round(dlProgress)}%` : '✓'}</span>
+                  </p>
+                </div>
+                <div className="mt-5">
+                  {dlModal === 'downloading' ? (
+                    <button onClick={() => setDlModal('hidden')} className="w-full py-2.5 border border-[#7FB8E4]/30 text-[#9a8f7a] text-xs font-mono tracking-[0.2em] rounded hover:text-white transition-colors">
+                      后台进行，先干别的
+                    </button>
+                  ) : (
+                    <button onClick={() => setDlModal('hidden')} className="w-full py-2.5 bg-[#7FB8E4] text-[#0c1521] text-xs font-mono tracking-[0.2em] rounded hover:bg-[#9ecfe9] transition-colors">
+                      完成，关闭
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <audio ref={audioRef} onEnded={onEnded} playsInline preload="auto" />
       {caption && (
         <div className="krt-toast">
