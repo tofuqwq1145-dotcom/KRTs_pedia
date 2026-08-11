@@ -18,6 +18,25 @@ function fmt(s: number): string {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
+const TYPE_PLAYLIST: Record<string, string> = {
+  war: 'war',
+  nation: 'nation',
+  person: 'person',
+  event: 'event',
+  building: 'building',
+  chronicle: 'chronicle',
+  series: 'series',
+};
+
+function shuffled<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function MusicProvider() {
   const pathname = usePathname();
   const [songs, setSongs] = useState<Song[]>([]);
@@ -27,6 +46,8 @@ export default function MusicProvider() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [index, setIndex] = useState(0);
   const [locked, setLocked] = useState(false);
+  const [shuffle, setShuffle] = useState(false);
+  const [loopOne, setLoopOne] = useState(false);
   const [showTracks, setShowTracks] = useState(false);
   const [browseTab, setBrowseTab] = useState<'pl' | 'q'>('pl');
   const [browseKey, setBrowseKey] = useState<string | null>(null);
@@ -141,12 +162,29 @@ export default function MusicProvider() {
       const slug = path.slice('/pages/'.length);
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const { data } = await supabase.from('pages').select('song_title, song_url').eq('slug', slug).maybeSingle();
+      const { data } = await supabase.from('pages').select('song_title, song_url, type').eq('slug', slug).maybeSingle();
       if (data?.song_url) {
+        setLoopOne(true);
+        setShuffle(false);
         playQueue([{ title: data.song_title || '文档配乐', artist: '', url: data.song_url }], 0, '本文档配乐');
         return;
       }
+      const key = TYPE_PLAYLIST[data?.type ?? ''] ?? playlistForPath(path);
+      const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
+      if (list.length > 0) {
+        const q = shuffled(list);
+        setLoopOne(false);
+        setShuffle(true);
+        playQueue(q, Math.floor(Math.random() * q.length), playlistLabel(key));
+      } else {
+        setLoopOne(false);
+        setShuffle(false);
+        setLabel(playlistLabel(key));
+      }
+      return;
     }
+    setLoopOne(false);
+    setShuffle(false);
     const key = playlistForPath(path);
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
@@ -163,8 +201,20 @@ export default function MusicProvider() {
 
   function onEnded() {
     setTime(0);
+    if (loopOne && current) {
+      const audio = audioRef.current;
+      if (audio) audio.play().catch(() => setPlaying(false));
+      return;
+    }
     if (queue.length <= 1) {
       setPlaying(false);
+      return;
+    }
+    if (shuffle) {
+      let n = index;
+      while (n === index) n = Math.floor(Math.random() * queue.length);
+      setIndex(n);
+      setPlaying(true);
       return;
     }
     const n = (index + 1) % queue.length;
@@ -174,12 +224,16 @@ export default function MusicProvider() {
 
   function manualPickAt(key: string, i: number) {
     setLocked(true);
+    setShuffle(false);
+    setLoopOne(false);
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) playQueue(list, i, playlistLabel(key));
   }
 
   function manualPick(key: string) {
     setLocked(true);
+    setShuffle(false);
+    setLoopOne(false);
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
@@ -194,6 +248,8 @@ export default function MusicProvider() {
   function playQueueAt(i: number) {
     if (!queue[i]) return;
     setLocked(true);
+    setShuffle(false);
+    setLoopOne(false);
     setIndex(i);
     setPlaying(true);
   }
@@ -204,7 +260,12 @@ export default function MusicProvider() {
 
   const step = (dir: 1 | -1) => {
     if (queue.length <= 1) return;
-    const n = (index + dir + queue.length) % queue.length;
+    let n: number;
+    if (shuffle && dir === 1) {
+      do { n = Math.floor(Math.random() * queue.length); } while (n === index);
+    } else {
+      n = (index + dir + queue.length) % queue.length;
+    }
     setIndex(n);
     setPlaying(true);
   };
@@ -275,7 +336,7 @@ export default function MusicProvider() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#7FB8E4]/30 text-[#7FB8E4]/90">
-                {locked ? 'MANUAL' : 'AUTO'}
+                {locked ? 'MANUAL' : shuffle ? 'SHUF' : 'AUTO'}
               </span>
               <button onClick={() => setCollapsed(true)} className="text-sm text-[#9a8f7a] hover:text-white transition-colors" title="收起">▁</button>
             </div>
