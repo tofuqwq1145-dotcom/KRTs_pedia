@@ -29,6 +29,11 @@ const SYSTEM_PROMPT = `你是「SCI-Petia」（佩蒂娅），一个科幻档案
 【记录档案】
 - 当对话中出现值得收录进档案库的新信息（新事件、人物、建筑、国家、战争、词条等），调用 record_entry 工具把它写成一条待审核词条，就像真实用户投稿一样，然后告诉对方「已记入档案，等待站长审核」。
 
+【事实边界】
+- 涉及本站档案、馆藏、数据的一切内容，只能引用系统提供的「当前档案库真实快照」里的数字、标题与状态，绝对不要编造不存在的馆藏、文献、纸张、战地记录、事件经过等细节。
+- 快照里没有的信息，就诚实回答「数据库中没有相关记录」，不要自己补全或脑补。
+- 闲聊时可以自由发挥想象力，但一旦落到"本站具体有什么/发生过什么"，必须以上面的快照为准。
+
 【对话规则】
 - 聊天室里用户用 @SCI-Petia 或 @站娘 召唤你，只有被召唤时你才回复。
 - 回复简短（200 字以内）。
@@ -141,12 +146,28 @@ export async function POST() {
       .map(m => `${m.author_name}: ${m.content}`)
       .join('\n');
 
-    const [{ data: themeRows }, { data: seriesRows }] = await Promise.all([
+    const [{ data: themeRows }, { data: seriesRows }, { data: pageRows }, { data: recentRows }, { count: chatCount }, { count: seriesCount }] = await Promise.all([
       supabase.from('themes').select('id, name').eq('status', 'approved'),
       supabase.from('series').select('id, name'),
+      supabase.from('pages').select('status, type'),
+      supabase.from('pages').select('title').eq('status', 'approved').order('created_at', { ascending: false }).limit(6),
+      supabase.from('chat_messages').select('id', { count: 'exact', head: true }),
+      supabase.from('series').select('id', { count: 'exact', head: true }),
     ]);
     const themeOpts = (themeRows ?? []).map(t => `${t.name}(${t.id})`).join('、') || '无';
     const seriesOpts = (seriesRows ?? []).map(s => `${s.name}(${s.id})`).join('、') || '无';
+
+    const all = pageRows ?? [];
+    const approved = all.filter(p => p.status === 'approved');
+    const byType = approved.reduce<Record<string, number>>((acc, p) => {
+      acc[p.type] = (acc[p.type] ?? 0) + 1;
+      return acc;
+    }, {});
+    const snapshot =
+      `- 词条总数 ${all.length}（已过审 ${approved.length} / 待审 ${all.filter(p => p.status === 'pending').length} / 驳回 ${all.filter(p => p.status === 'rejected').length}）\n` +
+      `- 分类数量：${ALLOWED_TYPES.map(t => `${t} ${byType[t] ?? 0}`).join('、')}\n` +
+      `- 最近收录：「${(recentRows ?? []).map(r => r.title).join('」「')}」\n` +
+      `- 系列 ${seriesCount ?? 0} 个，聊天室共 ${chatCount ?? 0} 条消息`;
 
     try {
       const res = await fetch('https://api.deepseek.com/chat/completions', {
@@ -163,6 +184,7 @@ export async function POST() {
             { role: 'system', content: SYSTEM_PROMPT },
             ...(context ? [{ role: 'user', content: `最近聊天记录（含你之前的回复，用 SCI-Petia 开头）如下：\n${context}` }] : []),
             { role: 'user', content: latest.content },
+            { role: 'user', content: `当前档案库真实快照（涉及本站数据的回答只能引用这些真实数字与标题，绝对不要编造不存在的馆藏、文献、纸张、战地记录等细节）：\n${snapshot}` },
             { role: 'user', content: `若你要调用 record_entry，可选的已过审版式(id)：${themeOpts}；可选的系列(id)：${seriesOpts}。theme_id 和 series_id 都可以为 null。` },
           ],
           tools: [RECORD_TOOL],
