@@ -110,7 +110,13 @@ export default function ChatRoom() {
       if (error) throw new Error(error.message);
       setText('');
       if (botOn) {
-        fetch('/api/chat/bot', { method: 'POST' }).catch(() => {});
+        try {
+          const r = await fetch('/api/chat/bot', { method: 'POST' });
+          if (!r.ok) {
+            const j = await r.json().catch(() => null);
+            if (j?.error) setError(j.error);
+          }
+        } catch { /* 网络异常忽略 */ }
       }
     } catch (e: any) {
       setError(e.message || '发送失败。');
