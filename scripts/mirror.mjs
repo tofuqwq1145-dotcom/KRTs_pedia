@@ -6,7 +6,7 @@
 //   然后运行：npm run mirror
 // 生成结果输出到 dist-mirror/ 目录，整包上传到 COS 的静态网站即可。
 // ============================================================
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +16,8 @@ import { marked } from 'marked';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const OUT = path.join(root, 'dist-mirror');
+
+await rm(OUT, { recursive: true, force: true });
 
 // ---------- 读取 .env.local ----------
 const envLocal = path.join(root, '.env.local');
