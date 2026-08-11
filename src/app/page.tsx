@@ -28,7 +28,7 @@ export default async function Home() {
         <div
           className="hero-bg absolute inset-0"
           style={heroUrl ? {
-            backgroundImage: `radial-gradient(1100px 560px at 50% -8%, rgba(127,184,228,0.16), transparent 58%), radial-gradient(900px 520px at 82% 112%, rgba(23,55,94,0.55), transparent 60%), linear-gradient(180deg, rgba(8,11,15,0.5), rgba(8,11,15,0.88)), url('${heroUrl}')`,
+            backgroundImage: `radial-gradient(1100px 560px at 50% -8%, rgba(127,184,228,0.16), transparent 58%), radial-gradient(900px 520px at 82% 112%, rgba(23,55,94,0.5), transparent 60%), linear-gradient(180deg, rgba(8,11,15,0.3), rgba(8,11,15,0.6)), url('${heroUrl}')`,
             backgroundSize: 'auto, auto, auto, cover',
             backgroundPosition: 'center, center, center, center',
           } : undefined}
@@ -36,7 +36,7 @@ export default async function Home() {
         />
         <div className="hero-grid absolute inset-0" aria-hidden="true" />
         <div className="hero-scan absolute inset-0" aria-hidden="true" />
-        <div className="absolute inset-0 bg-archive-bg/60" aria-hidden="true" />
+        <div className="absolute inset-0 bg-archive-bg/40" aria-hidden="true" />
         <div className="relative max-w-6xl pl-6 md:pl-20 pr-6 py-28 md:py-36">
           <div className="hero-breathe" aria-hidden="true" />
           <div className="relative">
