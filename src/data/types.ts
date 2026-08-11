@@ -70,6 +70,7 @@ export interface Theme {
   header_to: string;
   header_animation: string;
   logo_url: string;
+  bg_image: string;
   created_at: string;
 }
 

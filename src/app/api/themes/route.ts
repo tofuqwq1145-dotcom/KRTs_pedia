@@ -4,7 +4,7 @@ import { normalizeSlug } from '@/lib/slug';
 
 const STYLES = ['modern', 'scp', 'classic'];
 const HEADER_STYLES = ['none', 'linear', 'linear-diag', 'radial'];
-const ANIMATIONS = ['none', 'float', 'pulse', 'glow'];
+const ANIMATIONS = ['none', 'float', 'pulse', 'glow', 'scan', 'grid', 'ripple'];
 const FONT_KEYS = ['sans', 'serif', 'kai', 'mono', 'default'];
 
 function isColor(v: string | undefined): boolean {
@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       header_to: colors.header_to,
       header_animation: animation,
       logo_url: str('logo_url'),
+      bg_image: str('bg_image'),
       status: 'pending',
       author_id: user.id,
     })

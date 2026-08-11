@@ -2,6 +2,8 @@ import { getPageBySlug, getSeriesName, fmtDate, resolveThemeForPage } from '@/li
 import { notFound } from 'next/navigation';
 import Breadcrumb from '@/components/Breadcrumb';
 import Markdown from '@/components/Markdown';
+import RatingBox from '@/components/RatingBox';
+import Discussion from '@/components/Discussion';
 import { fontFamily, headerBackground, animationClass } from '@/data/themes';
 import { TYPE_LABELS, TYPE_ROUTES } from '@/lib/pages';
 import type { Metadata } from 'next';
@@ -37,7 +39,8 @@ export default async function PageDetail({ params }: { params: { slug: string } 
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 fade-in">
+    <div className="max-w-4xl mx-auto px-6 py-12 fade-in"
+      style={theme?.bg_image ? { backgroundImage: `url(${theme.bg_image})`, backgroundSize: 'cover', backgroundAttachment: 'fixed', backgroundPosition: 'center' } : undefined}>
       <Breadcrumb items={[{ label: TYPE_LABELS[page.type], path: TYPE_ROUTES[page.type] }, { label: page.title }]} />
       <div className="bg-archive-paper border border-archive-border" style={theme?.bg ? { background: theme.bg } : undefined}>
         <div className={`px-8 md:px-12 pt-10 text-center ${animationClass(theme?.header_animation)}`} style={{ background: banner }}>
@@ -83,6 +86,10 @@ export default async function PageDetail({ params }: { params: { slug: string } 
           )}
 
           <Markdown content={page.body} />
+
+          <RatingBox pageId={page.id} slug={page.slug} />
+
+          <Discussion pageId={page.id} slug={page.slug} />
         </div>
       </div>
     </div>

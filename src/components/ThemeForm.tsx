@@ -9,7 +9,7 @@ const inputCls = 'w-full p-3 border border-archive-border bg-archive-paper outli
 const labelCls = 'block text-xs tracking-widest text-archive-muted mb-2';
 const STYLES = [['modern', '现代档案馆'], ['scp', 'SCP 式深色'], ['classic', '复古羊皮纸']] as const;
 const GRADS = [['none', '无渐变'], ['linear', '线性·纵向'], ['linear-diag', '线性·斜向'], ['radial', '径向']] as const;
-const ANIMS = [['none', '无动效'], ['float', '缓慢浮动'], ['pulse', '呼吸明暗'], ['glow', '微光']] as const;
+const ANIMS = [['none', '无动效'], ['float', '缓慢浮动'], ['pulse', '呼吸明暗'], ['glow', '微光'], ['scan', '扫描线'], ['grid', '网格脉动'], ['ripple', '水波纹']] as const;
 
 function Color({ label, v, on, def }: { label: string; v: string; on: (s: string) => void; def: string }) {
   return (
@@ -62,27 +62,32 @@ export default function ThemeForm() {
   const [animation, setAnimation] = useState('none');
   const [logoUrl, setLogoUrl] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
+  const [bgImage, setBgImage] = useState('');
+  const [bgImageName, setBgImageName] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
+  const bgRef = useRef<HTMLInputElement>(null);
 
-  async function onUploadLogo(file: File) {
+  async function onUploadTo(folder: 'themes', ref: { current: HTMLInputElement | null }, setUrl: (s: string) => void, setName: (s: string) => void) {
     setError('');
     setUploading(true);
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('请先登录');
-      const url = await uploadMedia(supabase, 'themes', user.id, file);
-      setLogoUrl(url);
-      setLogoFileName(file.name);
+      const f = ref.current?.files?.[0];
+      if (!f) throw new Error('未选择文件');
+      const url = await uploadMedia(supabase, folder, user.id, f);
+      setUrl(url);
+      setName(f.name);
     } catch (e: any) {
-      setError(e.message || 'Logo 上传失败。');
+      setError(e.message || '上传失败。');
     } finally {
       setUploading(false);
-      if (logoRef.current) logoRef.current.value = '';
+      if (ref.current) ref.current.value = '';
     }
   }
 
@@ -95,12 +100,12 @@ export default function ThemeForm() {
       const res = await fetch('/api/themes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), slug: slug.trim(), slogan: slogan.trim(), accent, bg, style, title_color: titleColor, body_color: bodyColor, title_font: titleFont, body_font: bodyFont, header_style: headerStyle, header_from: headerFrom, header_to: headerTo, header_animation: animation, logo_url: logoUrl }),
+        body: JSON.stringify({ name: name.trim(), slug: slug.trim(), slogan: slogan.trim(), accent, bg, style, title_color: titleColor, body_color: bodyColor, title_font: titleFont, body_font: bodyFont, header_style: headerStyle, header_from: headerFrom, header_to: headerTo, header_animation: animation, logo_url: logoUrl, bg_image: bgImage }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? '提交失败');
       setNotice('已提交，等待站主审核通过后即可被他人使用。');
-      setName(''); setSlug(''); setSlogan(''); setLogoUrl(''); setLogoFileName('');
+      setName(''); setSlug(''); setSlogan(''); setLogoUrl(''); setLogoFileName(''); setBgImage(''); setBgImageName('');
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -136,12 +141,31 @@ export default function ThemeForm() {
               {uploading ? '上传中…' : '上传 Logo'}
             </button>
             <input ref={logoRef} type="file" accept="image/*" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) onUploadLogo(f); }} />
+              onChange={() => onUploadTo('themes', logoRef, setLogoUrl, setLogoFileName)} />
             {logoUrl ? (
               <div className="flex items-center gap-2">
                 <img src={logoUrl} alt="" className="w-12 h-12 object-contain border border-archive-border" />
                 <span className="text-xs text-archive-muted truncate max-w-[130px]">{logoFileName}</span>
                 <button type="button" onClick={() => { setLogoUrl(''); setLogoFileName(''); }} className="text-xs text-archive-muted hover:text-archive-accent">移除</button>
+              </div>
+            ) : <span className="text-xs text-archive-muted">未上传</span>}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls}>正文背景图（可选，显示在条目正文纸张后面）</label>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => bgRef.current?.click()} disabled={uploading}
+              className="px-4 py-3 text-xs tracking-widest text-archive-accent border border-archive-accent/40 hover:bg-archive-accent hover:text-archive-paper transition-colors disabled:opacity-50">
+              {uploading ? '上传中…' : '上传背景'}
+            </button>
+            <input ref={bgRef} type="file" accept="image/*" className="hidden"
+              onChange={() => onUploadTo('themes', bgRef, setBgImage, setBgImageName)} />
+            {bgImage ? (
+              <div className="flex items-center gap-2">
+                <img src={bgImage} alt="" className="w-16 h-10 object-cover border border-archive-border" />
+                <span className="text-xs text-archive-muted truncate max-w-[130px]">{bgImageName}</span>
+                <button type="button" onClick={() => { setBgImage(''); setBgImageName(''); }} className="text-xs text-archive-muted hover:text-archive-accent">移除</button>
               </div>
             ) : <span className="text-xs text-archive-muted">未上传</span>}
           </div>

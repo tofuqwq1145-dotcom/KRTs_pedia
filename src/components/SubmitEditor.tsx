@@ -197,8 +197,35 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     }
   }
 
-  async function onUploadCover(file: File) {
-    setUploadError('');
+  const COLLAPSIBLE_TEMPLATE = `:::collapsible
+
+## 第一项：标题
+
+在这里填写第一项的详细信息……
+
+## 第二项：标题
+
+在这里填写第二项的详细信息……
+
+:::`;
+
+  function insertBlock(template: string) {
+    const ta = textareaRef.current;
+    if (ta) {
+      const start = ta.selectionStart ?? body.length;
+      const end = ta.selectionEnd ?? body.length;
+      const next = body.slice(0, start) + template + body.slice(end);
+      setBody(next);
+      requestAnimationFrame(() => {
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = start + template.length;
+      });
+    } else {
+      setBody(b => (b ? b + '\n\n' + template : template));
+    }
+  }
+
+  async function onUploadCover(file: File) {    setUploadError('');
     if (!user) return setUploadError('请先登录。');
     setUploading(true);
     try {
@@ -369,6 +396,14 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs tracking-widest text-archive-muted">正文（Markdown）*</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => insertBlock(COLLAPSIBLE_TEMPLATE)}
+                  className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-3 py-1 hover:bg-archive-accent hover:text-archive-paper transition-colors"
+                >
+                  + 可折叠列表
+                </button>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -384,6 +419,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
                   className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) onUploadImage(f); }}
                 />
+              </div>
             </div>
           <textarea
             ref={textareaRef}
@@ -393,7 +429,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
             placeholder={TEMPLATES.default}
             className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm leading-relaxed font-mono"
           />
-          <p className="text-xs text-archive-muted mt-2 leading-relaxed">支持 Markdown：标题、加粗、引用、列表、表格、代码块、[链接](url)、![图片](url)。内容需经站主审核后公开。</p>
+          <p className="text-xs text-archive-muted mt-2 leading-relaxed">支持 Markdown：标题、加粗、引用、列表、表格、代码块、[链接](url)、![图片](url)。用「+ 可折叠列表」可插入点击展开的清单。内容需经站主审核后公开。</p>
           {uploadError && <p className="text-sm text-archive-accent mt-2">{uploadError}</p>}
         </div>
 

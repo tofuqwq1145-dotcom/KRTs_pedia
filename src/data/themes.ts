@@ -30,6 +30,9 @@ export function animationClass(value?: string | null): string {
     case 'float': return 'theme-float';
     case 'pulse': return 'theme-pulse';
     case 'glow': return 'theme-glow';
+    case 'scan': return 'theme-scan';
+    case 'grid': return 'theme-grid';
+    case 'ripple': return 'theme-ripple';
     default: return '';
   }
 }

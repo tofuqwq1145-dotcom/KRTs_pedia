@@ -112,6 +112,7 @@ create table if not exists public.themes (
   header_to text not null default '#3a3a3a',
   header_animation text not null default 'none',
   logo_url text not null default '',
+  bg_image text not null default '',
   created_at timestamptz not null default now()
 );
 alter table public.themes add column if not exists slogan text not null default '';
@@ -126,6 +127,7 @@ alter table public.themes add column if not exists header_from text not null def
 alter table public.themes add column if not exists header_to text not null default '#3a3a3a';
 alter table public.themes add column if not exists header_animation text not null default 'none';
 alter table public.themes add column if not exists logo_url text not null default '';
+alter table public.themes add column if not exists bg_image text not null default '';
 
 alter table public.themes enable row level security;
 
@@ -174,6 +176,62 @@ create policy "chat_messages_insert_own" on public.chat_messages
 
 -- Realtime 发布（若已在发布中会报错，可忽略）
 alter publication supabase_realtime add table public.chat_messages;
+
+-- ---------- ratings：文档评分（每账号每文档一条，可修改） ----------
+create table if not exists public.ratings (
+  id uuid primary key default gen_random_uuid(),
+  page_id uuid not null references public.pages (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  value int not null check (value between 1 and 5),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (page_id, user_id)
+);
+
+alter table public.ratings enable row level security;
+
+drop policy if exists "ratings_read_public" on public.ratings;
+create policy "ratings_read_public" on public.ratings for select using (true);
+
+drop policy if exists "ratings_insert_own" on public.ratings;
+create policy "ratings_insert_own" on public.ratings
+  for insert with check (auth.uid() = user_id and value between 1 and 5);
+
+drop policy if exists "ratings_update_own" on public.ratings;
+create policy "ratings_update_own" on public.ratings
+  for update using (auth.uid() = user_id)
+  with check (value between 1 and 5);
+
+drop policy if exists "ratings_delete_own" on public.ratings;
+create policy "ratings_delete_own" on public.ratings
+  for delete using (auth.uid() = user_id);
+
+-- ---------- comments：文档下方讨论区 ----------
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  page_id uuid not null references public.pages (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  author_name text not null default '',
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists comments_page_idx on public.comments (page_id);
+
+alter table public.comments enable row level security;
+
+drop policy if exists "comments_read_public" on public.comments;
+create policy "comments_read_public" on public.comments for select using (true);
+
+drop policy if exists "comments_insert_own" on public.comments;
+create policy "comments_insert_own" on public.comments
+  for insert with check (auth.uid() = user_id and char_length(body) between 1 and 2000);
+
+drop policy if exists "comments_delete_own" on public.comments;
+create policy "comments_delete_own" on public.comments
+  for delete using (auth.uid() = user_id);
+
+alter publication supabase_realtime add table public.comments;
 
 -- ---------- profiles：个人信息扩展 ----------
 alter table public.profiles add column if not exists bio text not null default '';
