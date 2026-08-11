@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { normalizeSlug } from '@/lib/slug';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -17,7 +18,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: '没有权限' }, { status: 403 });
   }
 
-  let payload: { name?: string; description?: string; sort_order?: number; parent_id?: string | null; theme_id?: string | null };
+  let payload: { name?: string; slug?: string; description?: string; sort_order?: number; parent_id?: string | null; theme_id?: string | null };
   try {
     payload = await request.json();
   } catch {
@@ -25,7 +26,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const patch: Record<string, unknown> = {};
-  if (typeof payload.name === 'string') patch.name = payload.name.trim();
+  if (typeof payload.name === 'string') {
+    if (!payload.name.trim()) return NextResponse.json({ error: '分级名称不能为空' }, { status: 400 });
+    patch.name = payload.name.trim();
+  }
+  if (typeof payload.slug === 'string') {
+    const slug = normalizeSlug(payload.slug);
+    if (!slug) return NextResponse.json({ error: '分级标识（Slug）不能为空' }, { status: 400 });
+    patch.slug = slug;
+  }
   if (typeof payload.description === 'string') patch.description = payload.description.trim();
   if (Number.isFinite(Number(payload.sort_order))) patch.sort_order = Math.round(Number(payload.sort_order));
   if ('parent_id' in payload) patch.parent_id = payload.parent_id || null;
@@ -39,6 +48,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .single();
 
   if (error) {
+    if (error.code === '23505') {
+      return NextResponse.json({ error: '该 Slug 已被使用' }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json(data);

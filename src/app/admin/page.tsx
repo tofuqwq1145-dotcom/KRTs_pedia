@@ -185,9 +185,11 @@ export default async function AdminPage() {
         <SongsManager />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+      <div className="mb-14">
         <SeriesManager />
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
         <HeroBackground initialUrl={heroUrl} />
 
         <UserManager users={(userRows ?? []) as AdminUser[]} />
