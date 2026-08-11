@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadAudio } from '@/lib/supabase/upload';
 import { PLAYLIST_OPTIONS, playlistLabel } from '@/data/music';
 
-interface SongRow { id: string; title: string; artist: string; url: string; playlist: string; sort_order: number }
+interface SongRow { id: string; title: string; artist: string; url: string; playlist: string; sort_order: number; unlock_type: string; unlock_goal: number }
 
 const inputCls = 'w-full p-3 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest';
 const labelCls = 'block text-xs tracking-widest text-archive-muted mb-2';
@@ -15,6 +15,8 @@ export default function SongsManager() {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [playlist, setPlaylist] = useState('home');
+  const [unlockType, setUnlockType] = useState('');
+  const [unlockGoal, setUnlockGoal] = useState(10);
   const [url, setUrl] = useState('');
   const [fileName, setFileName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -61,6 +63,8 @@ export default function SongsManager() {
         url,
         playlist,
         sort_order: list.length + 1,
+        unlock_type: unlockType,
+        unlock_goal: unlockType === 'petia_chats' ? Math.max(Number(unlockGoal) || 0, 1) : 0,
       });
       if (err) throw new Error(err.message);
       setNotice('已加入曲库。');
@@ -111,6 +115,19 @@ export default function SongsManager() {
               {PLAYLIST_OPTIONS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </div>
+          <div>
+            <label className={labelCls}>解锁条件</label>
+            <div className="flex items-center gap-2">
+              <select value={unlockType} onChange={e => setUnlockType(e.target.value)} className={inputCls}>
+                <option value="">始终开放</option>
+                <option value="petia_chats">与佩蒂娅交流 N 次</option>
+              </select>
+              {unlockType === 'petia_chats' && (
+                <input type="number" min={1} value={unlockGoal} onChange={e => setUnlockGoal(Number(e.target.value))}
+                  className={`${inputCls} w-24`} />
+              )}
+            </div>
+          </div>
         </div>
         <div>
           <label className={labelCls}>音频文件 *（MP3 等，30MB 内）</label>
@@ -149,7 +166,10 @@ export default function SongsManager() {
               {g.items.map(s => (
                 <div key={s.id} className="border border-archive-border bg-archive-paper px-4 py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm text-archive-text truncate">{s.title}</p>
+                    <p className="text-sm text-archive-text truncate">
+                      {s.title}
+                      {s.unlock_type === 'petia_chats' && <span className="ml-2 text-[10px] tracking-widest text-archive-accent border border-archive-accent/40 px-1.5 py-0.5 align-middle">🔒 交流 {s.unlock_goal} 次解锁</span>}
+                    </p>
                     <p className="text-[11px] text-archive-muted tracking-widest truncate">{s.artist || playlistLabel(s.playlist)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

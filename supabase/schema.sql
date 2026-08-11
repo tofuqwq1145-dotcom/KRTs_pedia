@@ -299,6 +299,10 @@ create table if not exists public.songs (
 
 create index if not exists songs_playlist_idx on public.songs (playlist);
 
+-- 解锁条件：unlock_type 为空=始终开放；'petia_chats'=需与佩蒂娅交流 unlock_goal 次
+alter table public.songs add column if not exists unlock_type text default '';
+alter table public.songs add column if not exists unlock_goal int default 0;
+
 alter table public.songs enable row level security;
 
 drop policy if exists "songs_read_public" on public.songs;

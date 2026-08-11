@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import { PLAYLIST_OPTIONS, playlistForPath, playlistLabel } from '@/data/music';
@@ -9,7 +9,7 @@ import SiteMascot from '@/components/SiteMascot';
 import Markdown from '@/components/Markdown';
 import { downloadAudio, isAudioCached, cachedAudioObjectUrl, isAudioCacheSupported } from '@/lib/audioCache';
 
-interface Song { id: string; title: string; artist: string; url: string; playlist: string }
+interface Song { id: string; title: string; artist: string; url: string; playlist: string; unlock_type?: string; unlock_goal?: number }
 
 interface QueueItem { title: string; artist: string; url: string }
 
@@ -92,6 +92,10 @@ export default function MusicProvider() {
   const [dlModal, setDlModal] = useState<'hidden' | 'prompt' | 'downloading' | 'done'>('hidden');
   const [dlScope, setDlScope] = useState<string[]>([]);
   const [dlTotalBytes, setDlTotalBytes] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [petiaCount, setPetiaCount] = useState(0);
+  const [lockMsg, setLockMsg] = useState('');
+  const lockMsgTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fadeTimer = useRef<number | null>(null);
   const appliedSrc = useRef<string | null>(null);
@@ -183,6 +187,45 @@ export default function MusicProvider() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      setUserId(user?.id ?? null);
+      if (!user) return;
+      const { count } = await supabase
+        .from('chat_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_name', 'SCI-Petia')
+        .eq('user_id', user.id);
+      if (!cancelled) setPetiaCount(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const isLocked = useCallback((s: Song) => {
+    if (s.unlock_type !== 'petia_chats') return false;
+    const goal = s.unlock_goal || 0;
+    if (goal <= 0) return false;
+    return !userId || petiaCount < goal;
+  }, [userId, petiaCount]);
+
+  const unlockedSongs = useMemo(() => songs.filter(s => !isLocked(s)), [songs, isLocked]);
+
+  function showLockHint(s: Song) {
+    const goal = s.unlock_goal || 0;
+    setLockMsg(`🔒 与佩蒂娅交流 ${goal} 次解锁（当前 ${petiaCount} 次）`);
+    if (lockMsgTimer.current !== null) window.clearTimeout(lockMsgTimer.current);
+    lockMsgTimer.current = window.setTimeout(() => setLockMsg(''), 4000);
+  }
+
+  useEffect(() => () => {
+    if (lockMsgTimer.current !== null) window.clearTimeout(lockMsgTimer.current);
+  }, []);
+
+  useEffect(() => {
     isAudioCacheSupported().then(ok => { if (!ok) setCacheOn(false); else setCacheOn(true); });
   }, []);
 
@@ -258,7 +301,7 @@ export default function MusicProvider() {
       if (skip || done) return;
 
       const uniq: string[] = [];
-      for (const s of songs) {
+      for (const s of unlockedSongs) {
         if (s.url && !uniq.includes(s.url)) uniq.push(s.url);
       }
       const cached = await Promise.all(uniq.map(u => isAudioCached(u)));
@@ -285,7 +328,7 @@ export default function MusicProvider() {
       setDlModal('prompt');
     })();
     return () => { cancelled = true; };
-  }, [songs]);
+  }, [unlockedSongs]);
 
   useEffect(() => {
     try {
@@ -391,7 +434,7 @@ export default function MusicProvider() {
         return;
       }
       const key = TYPE_PLAYLIST[data?.type ?? ''] ?? playlistForPath(path);
-      const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
+      const list = unlockedSongs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
       if (list.length > 0) {
         const q = shuffled(list);
         setLoopOne(false);
@@ -407,13 +450,13 @@ export default function MusicProvider() {
     setLoopOne(false);
     setShuffle(false);
     const key = playlistForPath(path);
-    const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
+    const list = unlockedSongs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key), startedRef.current);
     } else {
       setLabel(playlistLabel(key));
     }
-  }, [playQueue, songs]);
+  }, [playQueue, unlockedSongs]);
 
   useEffect(() => {
     if (locked) return;
@@ -443,23 +486,24 @@ export default function MusicProvider() {
     setPlaying(true);
   }
 
-  function manualPickAt(key: string, i: number) {
+  function manualPickAt(key: string, url: string) {
+    const unlocked = unlockedSongs.filter(s => s.playlist === key);
+    const i = unlocked.findIndex(s => s.url === url);
+    if (i < 0) return;
     setLocked(true);
     setShuffle(false);
     setLoopOne(false);
-    const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
-    if (list.length > 0) {
-      playQueue(list, i, playlistLabel(key));
-      startedRef.current = true;
-      playNow();
-    }
+    const list = unlocked.map(s => ({ title: s.title, artist: s.artist, url: s.url }));
+    playQueue(list, i, playlistLabel(key));
+    startedRef.current = true;
+    playNow();
   }
 
   function manualPick(key: string) {
     setLocked(true);
     setShuffle(false);
     setLoopOne(false);
-    const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
+    const list = unlockedSongs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
       startedRef.current = true;
@@ -537,6 +581,7 @@ export default function MusicProvider() {
   const pct = dur ? Math.min((time / dur) * 100, 100) : 0;
   const eqClass = playing ? 'krt-eq text-[#7FB8E4]' : 'krt-eq paused text-[#7FB8E4]';
   const playlistSongs = browseKey ? songs.filter(s => s.playlist === browseKey) : [];
+  const unlockedPlaylist = browseKey ? unlockedSongs.filter(s => s.playlist === browseKey) : [];
 
   const tabBtn = (tab: 'pl' | 'q', text: string) => (
     <button onClick={() => setBrowseTab(tab)}
@@ -735,15 +780,18 @@ export default function MusicProvider() {
                   {tabBtn('pl', '歌单')}
                   {tabBtn('q', '当前队列')}
                   <span className="flex-1" />
-                  {cacheOn && browseKey && playlistSongs.length > 0 && (
-                    <button onClick={() => downloadAll(playlistSongs.map(s => s.url).filter(Boolean))} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#7FB8E4] hover:text-white transition-colors" title="缓存整张歌单，供离线或快速播放">
-                      {playlistSongs.every(s => !s.url || dl[s.url] === 100) ? 'CACHED' : '⬇ 全部'}
+                  {cacheOn && browseKey && unlockedPlaylist.length > 0 && (
+                    <button onClick={() => downloadAll(unlockedPlaylist.map(s => s.url).filter(Boolean))} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#7FB8E4] hover:text-white transition-colors" title="缓存整张歌单，供离线或快速播放">
+                      {unlockedPlaylist.every(s => !s.url || dl[s.url] === 100) ? 'CACHED' : '⬇ 全部'}
                     </button>
                   )}
                   {locked && (
                     <button onClick={release} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#7FB8E4] hover:text-white transition-colors" title="恢复跟随页面">↻ AUTO</button>
                   )}
                 </div>
+                {lockMsg && (
+                  <p className="px-4 pb-1.5 text-[10px] tracking-widest text-[#9ecfe9]">{lockMsg}</p>
+                )}
 
                 {browseTab === 'q' ? (
                   queue.length === 0 ? (
@@ -766,11 +814,19 @@ export default function MusicProvider() {
                       {playlistSongs.length === 0 ? (
                         <p className="px-4 py-3 text-xs text-[#7a7059]">此歌单暂无曲目</p>
                       ) : playlistSongs.map((s, i) => (
-                        <button key={s.id} onClick={() => manualPickAt(browseKey, i)} className={rowCls(s.url === current?.url)}>
-                          <span className="w-5 font-mono text-[9px] text-[#7a7059]">{i + 1}</span>
-                          <span className="min-w-0 flex-1 truncate">{s.title}</span>
-                          <span className="text-[10px]">{s.url === current?.url && playing ? '▶' : ''}</span>
-                        </button>
+                        isLocked(s) ? (
+                          <button key={s.id} onClick={() => showLockHint(s)} className={`${rowCls(false)} opacity-50`} title="未解锁">
+                            <span className="w-5 font-mono text-[9px] text-[#7a7059]">{i + 1}</span>
+                            <span className="min-w-0 flex-1 truncate">🔒 {s.title}</span>
+                            <span className="text-[10px] text-[#7a7059]">交流{s.unlock_goal || 0}次</span>
+                          </button>
+                        ) : (
+                          <button key={s.id} onClick={() => manualPickAt(browseKey, s.url)} className={rowCls(s.url === current?.url)}>
+                            <span className="w-5 font-mono text-[9px] text-[#7a7059]">{i + 1}</span>
+                            <span className="min-w-0 flex-1 truncate">{s.title}</span>
+                            <span className="text-[10px]">{s.url === current?.url && playing ? '▶' : ''}</span>
+                          </button>
+                        )
                       ))}
                     </div>
                   </>
