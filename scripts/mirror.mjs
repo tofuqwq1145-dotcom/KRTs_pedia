@@ -166,7 +166,7 @@ function listCard(p) {
   const descRaw = p.body.replace(/[#>*`=\-_\[\]\(\)\n\r]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
   return `<div class="card">
     <div class="meta">${typeLabel(p.type)} · ${esc(p.author_name || '佚名')}</div>
-    <h3><a href="/pages/${encodeURIComponent(p.slug)}/">${esc(p.title)}</a></h3>
+    <h3><a href="/pages/${p.slug}/">${esc(p.title)}</a></h3>
     <div class="desc">${esc(descRaw)}</div>
   </div>`;
 }
@@ -200,7 +200,7 @@ for (const p of pages) {
       <div class="meta">${typeLabel(p.type)} · ${esc(p.author_name || '佚名')}</div>
       <div class="markdown">${html}</div>
     </article>`;
-  await writePage(`pages/${encodeURIComponent(p.slug)}/index.html`, layout(body));
+  await writePage(`pages/${p.slug}/index.html`, layout(body));
 }
 
 // ---------- 检索页 ----------

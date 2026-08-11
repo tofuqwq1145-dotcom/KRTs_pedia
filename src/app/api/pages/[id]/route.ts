@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { PageType } from '@/data/types';
+import { normalizeSlug } from '@/lib/slug';
 
 const ALLOWED_TYPES: PageType[] = ['nation', 'person', 'event', 'war', 'building', 'chronicle', 'article'];
 
@@ -56,7 +57,7 @@ export async function PUT(
   }
 
   const title = (payload.title ?? '').trim();
-  const slug = (payload.slug ?? '').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const slug = normalizeSlug(payload.slug);
   const type = ALLOWED_TYPES.includes(payload.type as PageType) ? (payload.type as PageType) : 'article';
   const body = (payload.body ?? '').trim();
   const tags = normalizeTags(payload.tags);

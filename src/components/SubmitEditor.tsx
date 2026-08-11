@@ -88,15 +88,17 @@ const TEMPLATES: Record<string, string> = {
 };
 
 function slugify(title: string) {
-  return (
-    title
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[·・.。，,！!？?（）()【】\[\]:：;；'"，、]/g, '')
-      .replace(/-+/g, '-')
-      .slice(0, 60) || 'untitled'
-  );
+  const t = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60);
+  if (t) return t;
+  let h = 0;
+  for (const ch of title) h = (h * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
+  return 'doc-' + h.toString(36).slice(0, 6);
 }
 
 export default function SubmitEditor({ editId }: { editId?: string }) {

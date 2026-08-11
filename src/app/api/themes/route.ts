@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { normalizeSlug } from '@/lib/slug';
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const name = (payload.name ?? '').trim();
-  const slug = (payload.slug ?? '').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const slug = normalizeSlug(payload.slug);
   if (!name) return NextResponse.json({ error: '主题名称不能为空' }, { status: 400 });
   if (!slug) return NextResponse.json({ error: '主题标识（Slug）不能为空' }, { status: 400 });
 

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { normalizeSlug } from '@/lib/slug';
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const name = (payload.name ?? '').trim();
-  const slug = (payload.slug ?? '').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const slug = normalizeSlug(payload.slug);
   const description = (payload.description ?? '').trim();
   const sort_order = Number.isFinite(Number(payload.sort_order)) ? Math.round(Number(payload.sort_order)) : 0;
   const parent_id = payload.parent_id || null;
