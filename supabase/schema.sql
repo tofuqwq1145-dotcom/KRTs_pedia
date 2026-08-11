@@ -18,10 +18,11 @@ create table if not exists public.profiles (
 -- 兼容已建表情况（若旧表没有 avatar_url 列则补上）
 alter table public.profiles add column if not exists avatar_url text default '';
 
--- 成员信息：所属国家 / 组织 / 地址(IP)
+-- 成员信息：所属国家 / 组织 / 联系方式(微信、QQ)
 alter table public.profiles add column if not exists nation text default '';
 alter table public.profiles add column if not exists organization text default '';
-alter table public.profiles add column if not exists ip text default '';
+alter table public.profiles add column if not exists wechat text default '';
+alter table public.profiles add column if not exists qq text default '';
 
 alter table public.profiles enable row level security;
 

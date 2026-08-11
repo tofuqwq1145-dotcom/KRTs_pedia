@@ -8,20 +8,22 @@ interface FeaturedOption {
   slug: string;
 }
 
-export default function ProfileEdit({ userId, bio, featuredId, options, nation, organization, ip }: {
+export default function ProfileEdit({ userId, bio, featuredId, options, nation, organization, wechat, qq }: {
   userId: string;
   bio: string;
   featuredId: string | null | undefined;
   options: FeaturedOption[];
   nation: string;
   organization: string;
-  ip: string;
+  wechat: string;
+  qq: string;
 }) {
   const [bioText, setBioText] = useState(bio ?? '');
   const [featured, setFeatured] = useState(featuredId ?? '');
   const [nationText, setNationText] = useState(nation ?? '');
   const [orgText, setOrgText] = useState(organization ?? '');
-  const [ipText, setIpText] = useState(ip ?? '');
+  const [wechatText, setWechatText] = useState(wechat ?? '');
+  const [qqText, setQqText] = useState(qq ?? '');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -40,7 +42,8 @@ export default function ProfileEdit({ userId, bio, featuredId, options, nation, 
           featured_page_id: featured || null,
           nation: nationText.trim(),
           organization: orgText.trim(),
-          ip: ipText.trim(),
+          wechat: wechatText.trim(),
+          qq: qqText.trim(),
         })
         .eq('id', userId);
       if (error) throw new Error(error.message);
@@ -70,7 +73,7 @@ export default function ProfileEdit({ userId, bio, featuredId, options, nation, 
           {options.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
         </select>
       </div>
-      <div className="grid gap-5 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className={labelCls}>所属国家</label>
           <input value={nationText} onChange={e => setNationText(e.target.value)} maxLength={40}
@@ -82,11 +85,17 @@ export default function ProfileEdit({ userId, bio, featuredId, options, nation, 
             placeholder="例如：圣殿骑士团" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>地址（IP）</label>
-          <input value={ipText} onChange={e => setIpText(e.target.value)} maxLength={60}
-            placeholder="例如：198.51.100.7" className={inputCls} />
+          <label className={labelCls}>微信号</label>
+          <input value={wechatText} onChange={e => setWechatText(e.target.value)} maxLength={40}
+            placeholder="微信号，例如：krt_admin" className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>QQ号</label>
+          <input value={qqText} onChange={e => setQqText(e.target.value)} maxLength={20}
+            placeholder="QQ 号码" className={inputCls} />
         </div>
       </div>
+      <p className="text-[11px] tracking-widest text-archive-muted">仅展示微信号 / QQ，请勿填写手机号等敏感信息，注意隐私安全。</p>
       <div className="flex items-center gap-4">
         <button onClick={onSave} disabled={busy}
           className="px-6 py-3 bg-archive-text text-archive-paper text-sm tracking-widest hover:bg-archive-accent transition-colors disabled:opacity-50">

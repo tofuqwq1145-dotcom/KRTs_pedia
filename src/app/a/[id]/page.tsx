@@ -19,7 +19,7 @@ export default async function AuthorPage({ params }: { params: { id: string } })
       const supabase = createClient();
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, bio, featured_page_id, nation, organization, ip')
+        .select('id, display_name, avatar_url, bio, featured_page_id, nation, organization, wechat, qq')
         .eq('id', params.id)
         .maybeSingle();
       return data ?? null;
@@ -59,11 +59,12 @@ export default async function AuthorPage({ params }: { params: { id: string } })
           <div className="flex-1 min-w-[200px]">
             <h1 className="font-serif text-3xl text-archive-text">{profile.display_name || '佚名撰稿人'}</h1>
             <p className="text-sm text-archive-muted tracking-widest mt-2">撰稿人 · 已收录 {pages.length} 篇档案</p>
-            {(profile.nation || profile.organization || profile.ip) && (
+            {(profile.nation || profile.organization || profile.wechat || profile.qq) && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {profile.nation && <span className="px-2.5 py-1 text-[11px] tracking-widest border border-archive-border text-archive-text">国家 · {profile.nation}</span>}
                 {profile.organization && <span className="px-2.5 py-1 text-[11px] tracking-widest border border-archive-border text-archive-text">组织 · {profile.organization}</span>}
-                {profile.ip && <span className="px-2.5 py-1 text-[11px] tracking-widest border border-archive-border text-archive-text font-mono">IP · {profile.ip}</span>}
+                {profile.wechat && <span className="px-2.5 py-1 text-[11px] tracking-widest border border-archive-border text-archive-text">微信 · {profile.wechat}</span>}
+                {profile.qq && <span className="px-2.5 py-1 text-[11px] tracking-widest border border-archive-border text-archive-text">QQ · {profile.qq}</span>}
               </div>
             )}
           </div>
