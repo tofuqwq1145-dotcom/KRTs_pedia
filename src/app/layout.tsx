@@ -1,4 +1,5 @@
 import './globals.css';
+import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import MusicProvider from '@/components/MusicProvider';
 import PresencePulse from '@/components/PresencePulse';
@@ -38,7 +39,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="max-w-7xl mx-auto px-6 text-center text-xs tracking-widest text-archive-muted leading-loose">
             <p>KRTPEDIA — KRT MEDIEVAL NATIONAL WAR ARCHIVE</p>
             <p>基于真实服务器历史事件记录，拒绝凭空推测。</p>
-            <p className="mt-4">Initiated by Kachibode · © 2026</p>
+            <p className="mt-4">
+              <Link href="/thanks" className="hover:text-archive-accent transition-colors">致谢名单</Link>
+              <span className="mx-3 text-archive-border">·</span>
+              <Link href="/about" className="hover:text-archive-accent transition-colors">关于本站</Link>
+            </p>
+            <p className="mt-3">Initiated by Kachibode · © 2026</p>
           </div>
         </footer>
       </body>

@@ -1,4 +1,5 @@
 import Breadcrumb from '@/components/Breadcrumb';
+import Link from 'next/link';
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 fade-in">
@@ -12,6 +13,9 @@ export default function AboutPage() {
           <p>这是文明的断层，也是我们建立 KRTP 的初衷。</p>
           <p className="font-bold text-archive-accent text-lg py-4">所以我在此宣布：KRTP项目，正式开启！</p>
         </div>
+      </div>
+      <div className="mt-8 text-center">
+        <Link href="/thanks" className="text-sm tracking-widest text-archive-accent hover:underline">查看致谢名单 →</Link>
       </div>
     </div>
   );
