@@ -133,79 +133,80 @@ export default function MusicProvider() {
     setPlaying(p => !p);
   };
 
-  if (collapsed) {
-    return (
-      <button
-        onClick={() => setCollapsed(false)}
-        className="fixed bottom-6 right-6 z-50 shadow-xl hover:scale-105 transition-transform"
-        title={label || '打开音乐'}
-      >
-        <SiteMascot mood={mascotForPath(pathname)} active={playing} size={64} />
-      </button>
-    );
-  }
-
   const mood = mascotForPath(pathname);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-72 bg-archive-paper border border-archive-border shadow-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 bg-archive-text text-archive-paper">
-        <div className="flex items-center gap-3 min-w-0 mr-2">
-          <button onClick={toggle} disabled={!current} title="点击播放 / 暂停"
-            className="shrink-0 disabled:opacity-40 hover:scale-105 transition-transform">
-            <SiteMascot mood={mood} active={playing} size={40} />
-          </button>
-          <div className="min-w-0">
-            <p className="text-[10px] tracking-[0.2em] uppercase opacity-70">KRTPedia Player</p>
-            <p className="text-xs tracking-widest truncate">{label || '本页暂无配乐'}</p>
-          </div>
-        </div>
-        <button onClick={() => setCollapsed(true)} className="shrink-0 text-sm opacity-80 hover:opacity-100">收起</button>
-      </div>
-
-      <div className="px-5 py-4">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <p className="text-sm font-serif text-archive-text truncate">{current?.title || '—'}</p>
-            <p className="text-[11px] text-archive-muted tracking-widest truncate">{current?.artist || '\u00A0'}</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => step(-1)} disabled={!current} className="text-archive-accent disabled:opacity-30 text-sm" title="上一首">⏮</button>
-            <button onClick={toggle} disabled={!current}
-              className="w-9 h-9 rounded-full bg-archive-accent text-archive-paper flex items-center justify-center disabled:opacity-30 text-sm">
-              {playing ? '❚❚' : '▶'}
-            </button>
-            <button onClick={() => step(1)} disabled={!current} className="text-archive-accent disabled:opacity-30 text-sm" title="下一首">⏭</button>
-          </div>
-        </div>
-        <audio ref={audioRef} onEnded={onEnded} />
-      </div>
-
-      <div className="border-t border-archive-border">
+    <>
+      <audio ref={audioRef} onEnded={onEnded} />
+      {collapsed ? (
         <button
-          onClick={() => setShowPlaylists(p => !p)}
-          className="w-full px-5 py-3 text-left text-xs tracking-widest text-archive-muted hover:text-archive-accent transition-colors flex items-center justify-between"
+          onClick={() => setCollapsed(false)}
+          className="fixed bottom-6 right-6 z-50 p-0 rounded-full overflow-hidden shadow-xl hover:scale-105 transition-transform"
+          title={label || '打开音乐'}
+          aria-label={label || '打开音乐'}
         >
-          <span>{locked ? '已手动选歌单' : '跟随当前页面'}</span>
-          <span>{showPlaylists ? '▲' : '▼'}</span>
+          <SiteMascot mood={mood} active={playing} size={64} />
         </button>
-        {showPlaylists && (
-          <div className="max-h-52 overflow-y-auto border-t border-archive-border py-1">
-            {PLAYLIST_OPTIONS.map(p => (
-              <button key={p.key} onClick={() => manualPick(p.key)}
-                className="w-full px-5 py-2 text-left text-xs tracking-widest text-archive-text hover:bg-archive-bg hover:text-archive-accent transition-colors">
-                {p.label}
+      ) : (
+        <div className="fixed bottom-6 right-6 z-50 w-72 bg-archive-paper border border-archive-border shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 bg-archive-text text-archive-paper">
+            <div className="flex items-center gap-3 min-w-0 mr-2">
+              <button onClick={toggle} disabled={!current} title="点击播放 / 暂停"
+                className="shrink-0 disabled:opacity-40 hover:scale-105 transition-transform">
+                <SiteMascot mood={mood} active={playing} size={40} />
               </button>
-            ))}
-            {locked && (
-              <button onClick={release}
-                className="w-full px-5 py-2 text-left text-xs tracking-widest text-archive-accent hover:bg-archive-bg transition-colors">
-                ↻ 恢复跟随页面
-              </button>
+              <div className="min-w-0">
+                <p className="text-[10px] tracking-[0.2em] uppercase opacity-70">KRTPedia Player</p>
+                <p className="text-xs tracking-widest truncate">{label || '本页暂无配乐'}</p>
+              </div>
+            </div>
+            <button onClick={() => setCollapsed(true)} className="shrink-0 text-sm opacity-80 hover:opacity-100">收起</button>
+          </div>
+
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="min-w-0">
+                <p className="text-sm font-serif text-archive-text truncate">{current?.title || '—'}</p>
+                <p className="text-[11px] text-archive-muted tracking-widest truncate">{current?.artist || '\u00A0'}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => step(-1)} disabled={!current} className="text-archive-accent disabled:opacity-30 text-sm" title="上一首">⏮</button>
+                <button onClick={toggle} disabled={!current}
+                  className="w-9 h-9 rounded-full bg-archive-accent text-archive-paper flex items-center justify-center disabled:opacity-30 text-sm">
+                  {playing ? '❚❚' : '▶'}
+                </button>
+                <button onClick={() => step(1)} disabled={!current} className="text-archive-accent disabled:opacity-30 text-sm" title="下一首">⏭</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-archive-border">
+            <button
+              onClick={() => setShowPlaylists(p => !p)}
+              className="w-full px-5 py-3 text-left text-xs tracking-widest text-archive-muted hover:text-archive-accent transition-colors flex items-center justify-between"
+            >
+              <span>{locked ? '已手动选歌单' : '跟随当前页面'}</span>
+              <span>{showPlaylists ? '▲' : '▼'}</span>
+            </button>
+            {showPlaylists && (
+              <div className="max-h-52 overflow-y-auto border-t border-archive-border py-1">
+                {PLAYLIST_OPTIONS.map(p => (
+                  <button key={p.key} onClick={() => manualPick(p.key)}
+                    className="w-full px-5 py-2 text-left text-xs tracking-widest text-archive-text hover:bg-archive-bg hover:text-archive-accent transition-colors">
+                    {p.label}
+                  </button>
+                ))}
+                {locked && (
+                  <button onClick={release}
+                    className="w-full px-5 py-2 text-left text-xs tracking-widest text-archive-accent hover:bg-archive-bg transition-colors">
+                    ↻ 恢复跟随页面
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

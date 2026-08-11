@@ -53,7 +53,7 @@ export default function SiteMascot({
 
   if (url) {
     return (
-      <span className="mascot" style={{ width: size, height: size, background: bg }} title={title ?? def.label} aria-label={def.label}>
+      <span className="mascot" style={{ width: size, height: size, background: def.bgA }} title={title ?? def.label} aria-label={def.label}>
         <img src={url} alt={def.label} className="w-full h-full object-cover" draggable={false} />
       </span>
     );
