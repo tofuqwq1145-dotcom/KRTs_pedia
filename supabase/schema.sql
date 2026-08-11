@@ -28,6 +28,28 @@ drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
 
+-- 站主判断助手（security definer 绕过 RLS，避免在 profiles 策略中自引用递归）
+create or replace function public.is_admin_ss()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin);
+$$;
+
+revoke execute on function public.is_admin_ss() from public;
+grant execute on function public.is_admin_ss() to authenticated;
+
+-- 站主可更新任意用户资料（管理端称号授予等）
+drop policy if exists "admin_update_any_profile" on public.profiles;
+create policy "admin_update_any_profile" on public.profiles
+  for update
+  to authenticated
+  using (public.is_admin_ss())
+  with check (public.is_admin_ss());
+
 -- 注册后自动建立 profile
 create or replace function public.handle_new_user()
 returns trigger
@@ -314,6 +336,8 @@ create policy "mascot_images_delete_admin" on public.mascot_images for delete us
 -- ---------- profiles：个人信息扩展 ----------
 alter table public.profiles add column if not exists bio text not null default '';
 alter table public.profiles add column if not exists featured_page_id uuid references public.pages (id) on delete set null;
+alter table public.profiles add column if not exists title text not null default '';
+alter table public.profiles add column if not exists last_seen timestamptz default now();
 
 -- ---------- pages：维基条目（含投稿审核工作流） ----------
 create table if not exists public.pages (
