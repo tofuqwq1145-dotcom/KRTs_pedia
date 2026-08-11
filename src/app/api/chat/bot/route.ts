@@ -205,9 +205,8 @@ export async function POST() {
       const data = await res.json();
       const message = data?.choices?.[0]?.message;
       let replyText = typeof message?.content === 'string' ? message.content : '';
-      console.log('[petia-bot] reply len', replyText.length, '| tool_calls', Array.isArray(message?.tool_calls) ? message.tool_calls.length : 0);
-
       const calls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
+      console.log('[petia-bot] reply len', replyText.length, '| tool_calls', calls.length, '| tools', calls.map((c: any) => c?.function?.name).join(',') || 'none');
       const recordCall = calls.find((c: any) => c?.function?.name === 'record_entry');
       if (recordCall) {
         let args: RecordArgs = {};
@@ -315,7 +314,13 @@ export async function POST() {
           } else {
             replyText = `${replyText ? `${replyText} ` : ''}啊，版式写入出了一点小故障，稍后再试。`;
           }
+        } else if (!replyText.trim()) {
+          replyText = '啊，版式参数好像没整理全……再说一遍设计想法我重新记？';
         }
+      }
+
+      if (!replyText.trim() && recordCall) {
+        replyText = '这个好像没整理好，关键词缺了……要不你再说一遍，我重新记？';
       }
 
       if (replyText.trim()) {
@@ -323,6 +328,8 @@ export async function POST() {
         if (!content.includes('[mascot:') && Math.random() < 0.5) {
           content = `${content} [mascot:${pickMood()}]`.trim();
         }
+      } else {
+        console.log('[petia-bot] empty reply, falling back to sticker');
       }
     } catch (e) {
       console.error('[petia-bot] deepseek error', e);
