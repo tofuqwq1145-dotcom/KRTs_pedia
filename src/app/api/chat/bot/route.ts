@@ -119,6 +119,7 @@ export async function POST() {
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
   let content = `[mascot:${pickMood()}]`;
+  console.log('[petia-bot] user', user.id, '| apiKey', apiKey ? 'set' : 'MISSING');
 
   if (apiKey) {
     // 取最近 10 条消息作为上下文
@@ -161,10 +162,15 @@ export async function POST() {
         }),
       });
 
-      if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
+      if (!res.ok) {
+        const bodyText = await res.text().catch(() => '');
+        console.error('[petia-bot] deepseek http', res.status, bodyText.slice(0, 500));
+        throw new Error(`DeepSeek ${res.status}`);
+      }
       const data = await res.json();
       const message = data?.choices?.[0]?.message;
       let replyText = typeof message?.content === 'string' ? message.content : '';
+      console.log('[petia-bot] reply len', replyText.length, '| tool_calls', Array.isArray(message?.tool_calls) ? message.tool_calls.length : 0);
 
       const calls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
       const recordCall = calls.find((c: any) => c?.function?.name === 'record_entry');
@@ -223,9 +229,10 @@ export async function POST() {
         }
       }
     } catch (e) {
-      console.error('deepseek error', e);
+      console.error('[petia-bot] deepseek error', e);
       content = `[mascot:${pickMood()}]`;
     }
+    console.log('[petia-bot] final content', content ? content.slice(0, 80) : '(empty)');
   }
 
   const { error } = await supabase
