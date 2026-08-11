@@ -81,6 +81,7 @@ export default function MusicProvider() {
   const fadeTimer = useRef<number | null>(null);
   const appliedSrc = useRef<string | null>(null);
   const captionTimer = useRef<number | null>(null);
+  const startedRef = useRef(false);
 
   const current = queue[index];
 
@@ -148,7 +149,7 @@ export default function MusicProvider() {
     appliedSrc.current = url;
     cancelFade();
     audio.src = url;
-    audio.volume = 0;
+    audio.volume = 0.6;
     if (playing) {
       audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
     }
@@ -228,7 +229,7 @@ export default function MusicProvider() {
       if (data?.song_url) {
         setLoopOne(true);
         setShuffle(false);
-        playQueue([{ title: data.song_title || '文档配乐', artist: '', url: data.song_url }], 0, '本文档配乐');
+        playQueue([{ title: data.song_title || '文档配乐', artist: '', url: data.song_url }], 0, '本文档配乐', startedRef.current);
         return;
       }
       const key = TYPE_PLAYLIST[data?.type ?? ''] ?? playlistForPath(path);
@@ -237,7 +238,7 @@ export default function MusicProvider() {
         const q = shuffled(list);
         setLoopOne(false);
         setShuffle(true);
-        playQueue(q, Math.floor(Math.random() * q.length), playlistLabel(key));
+        playQueue(q, Math.floor(Math.random() * q.length), playlistLabel(key), startedRef.current);
       } else {
         setLoopOne(false);
         setShuffle(false);
@@ -250,7 +251,7 @@ export default function MusicProvider() {
     const key = playlistForPath(path);
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
-      playQueue(list, 0, playlistLabel(key));
+      playQueue(list, 0, playlistLabel(key), startedRef.current);
     } else {
       setLabel(playlistLabel(key));
     }
@@ -291,6 +292,7 @@ export default function MusicProvider() {
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, i, playlistLabel(key));
+      startedRef.current = true;
       playNow();
     }
   }
@@ -302,6 +304,7 @@ export default function MusicProvider() {
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
+      startedRef.current = true;
       playNow();
     } else {
       setQueue([]);
@@ -318,6 +321,7 @@ export default function MusicProvider() {
     setLoopOne(false);
     setIndex(i);
     setPlaying(true);
+    startedRef.current = true;
     playNow();
   }
 
@@ -335,6 +339,7 @@ export default function MusicProvider() {
     }
     setIndex(n);
     setPlaying(true);
+    startedRef.current = true;
     playNow();
   };
 
@@ -355,6 +360,7 @@ export default function MusicProvider() {
       if (audio) fadeToVolume(audio, 0, 200, () => audio.pause());
     } else {
       setPlaying(true);
+      startedRef.current = true;
       playNow();
     }
   };
