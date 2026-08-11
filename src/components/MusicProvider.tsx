@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import { PLAYLIST_OPTIONS, playlistForPath, playlistLabel } from '@/data/music';
 import { mascotForPath } from '@/data/mascot';
@@ -9,6 +10,13 @@ import SiteMascot from '@/components/SiteMascot';
 interface Song { id: string; title: string; artist: string; url: string; playlist: string }
 
 interface QueueItem { title: string; artist: string; url: string }
+
+function fmt(s: number): string {
+  if (!isFinite(s) || s < 0) return '00:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
 
 export default function MusicProvider() {
   const pathname = usePathname();
@@ -19,7 +27,11 @@ export default function MusicProvider() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [index, setIndex] = useState(0);
   const [locked, setLocked] = useState(false);
-  const [showPlaylists, setShowPlaylists] = useState(false);
+  const [showTracks, setShowTracks] = useState(false);
+  const [browseTab, setBrowseTab] = useState<'pl' | 'q'>('pl');
+  const [browseKey, setBrowseKey] = useState<string | null>(null);
+  const [time, setTime] = useState(0);
+  const [dur, setDur] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fadeTimer = useRef<number | null>(null);
   const appliedSrc = useRef<string | null>(null);
@@ -33,7 +45,7 @@ export default function MusicProvider() {
     }
   }
 
-  function fadeToVolume(audio: HTMLAudioElement, to: number, dur: number, onDone?: () => void) {
+  function fadeToVolume(audio: HTMLAudioElement, to: number, durMs: number, onDone?: () => void) {
     cancelFade();
     const from = audio.volume;
     if (from === to) {
@@ -42,7 +54,7 @@ export default function MusicProvider() {
     }
     const start = performance.now();
     const tick = (now: number) => {
-      const p = Math.min((now - start) / dur, 1);
+      const p = Math.min((now - start) / durMs, 1);
       audio.volume = from + (to - from) * p;
       if (p < 1) {
         fadeTimer.current = requestAnimationFrame(tick);
@@ -92,7 +104,7 @@ export default function MusicProvider() {
     audio.src = url;
     audio.volume = 0;
     if (playing) {
-      audio.play().then(() => fadeToVolume(audio, 1, 900)).catch(() => setPlaying(false));
+      audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
     }
   }, [current?.url]);
 
@@ -100,11 +112,27 @@ export default function MusicProvider() {
     const audio = audioRef.current;
     if (!audio || !current?.url) return;
     if (playing) {
-      audio.play().then(() => fadeToVolume(audio, 1, 900)).catch(() => setPlaying(false));
+      audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
     } else {
-      fadeToVolume(audio, 0, 600, () => audio.pause());
+      fadeToVolume(audio, 0, 300, () => audio.pause());
     }
   }, [playing]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTime = () => setTime(audio.currentTime);
+    const onMeta = () => setDur(isFinite(audio.duration) ? audio.duration : 0);
+    const onEnded = () => setTime(0);
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('loadedmetadata', onMeta);
+    audio.addEventListener('ended', onEnded);
+    return () => {
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('loadedmetadata', onMeta);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
 
   useEffect(() => () => cancelFade(), []);
 
@@ -134,6 +162,7 @@ export default function MusicProvider() {
   }, [pathname, songs, locked, applyAuto]);
 
   function onEnded() {
+    setTime(0);
     if (queue.length <= 1) {
       setPlaying(false);
       return;
@@ -143,9 +172,14 @@ export default function MusicProvider() {
     setPlaying(true);
   }
 
+  function manualPickAt(key: string, i: number) {
+    setLocked(true);
+    const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
+    if (list.length > 0) playQueue(list, i, playlistLabel(key));
+  }
+
   function manualPick(key: string) {
     setLocked(true);
-    setShowPlaylists(false);
     const list = songs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
@@ -155,6 +189,13 @@ export default function MusicProvider() {
       setIndex(0);
       setPlaying(false);
     }
+  }
+
+  function playQueueAt(i: number) {
+    if (!queue[i]) return;
+    setLocked(true);
+    setIndex(i);
+    setPlaying(true);
   }
 
   function release() {
@@ -173,7 +214,30 @@ export default function MusicProvider() {
     setPlaying(p => !p);
   };
 
+  function seek(e: MouseEvent<HTMLDivElement>) {
+    if (!current || !dur) return;
+    const audio = audioRef.current;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    const t = ratio * dur;
+    setTime(t);
+    if (audio && isFinite(audio.duration)) audio.currentTime = t;
+  }
+
   const mood = mascotForPath(pathname);
+  const pct = dur ? Math.min((time / dur) * 100, 100) : 0;
+  const eqClass = playing ? 'krt-eq text-[#E0B05F]' : 'krt-eq paused text-[#E0B05F]';
+  const playlistSongs = browseKey ? songs.filter(s => s.playlist === browseKey) : [];
+
+  const tabBtn = (tab: 'pl' | 'q', text: string) => (
+    <button onClick={() => setBrowseTab(tab)}
+      className={`flex-1 py-1.5 rounded text-[10px] font-mono tracking-[0.15em] transition-colors ${browseTab === tab ? 'bg-[#E0B05F]/20 text-[#E0B05F]' : 'text-[#8a8069] hover:text-[#d6cbb4]'}`}>
+      {text}
+    </button>
+  );
+
+  const rowCls = (active: boolean) =>
+    `w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs transition-colors ${active ? 'bg-[#E0B05F]/10 text-[#E0B05F]' : 'text-[#d6cbb4] hover:bg-[#E0B05F]/10 hover:text-[#E0B05F]'}`;
 
   return (
     <>
@@ -181,66 +245,127 @@ export default function MusicProvider() {
       {collapsed ? (
         <button
           onClick={() => setCollapsed(false)}
-          className="fixed bottom-6 right-6 z-50 p-0 rounded-full overflow-hidden shadow-xl hover:scale-105 transition-transform"
+          className={`fixed bottom-6 right-6 z-50 p-0.5 rounded-full transition-transform hover:scale-105 ${playing ? 'shadow-[0_0_22px_rgba(224,176,95,0.55)] ring-1 ring-[#E0B05F]/70' : 'shadow-xl ring-1 ring-white/10'}`}
           title={label || '打开音乐'}
           aria-label={label || '打开音乐'}
         >
-          <SiteMascot mood={mood} active={playing} size={64} />
+          <span className="block rounded-full overflow-hidden">
+            <SiteMascot mood={mood} active={playing} size={60} />
+          </span>
         </button>
       ) : (
-        <div className="fixed bottom-6 right-6 z-50 w-72 bg-archive-paper border border-archive-border shadow-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 bg-archive-text text-archive-paper">
+        <div className="krt-panel fixed bottom-6 right-6 z-50 w-80 rounded-2xl overflow-hidden text-[#efe6d5]">
+          <div className="krt-scanline" />
+          <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
+          <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
+          <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
+          <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
+
+          <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#E0B05F]/20">
             <div className="flex items-center gap-3 min-w-0 mr-2">
-              <button onClick={toggle} disabled={!current} title="点击播放 / 暂停"
-                className="shrink-0 disabled:opacity-40 hover:scale-105 transition-transform">
+              <button onClick={toggle} disabled={!current} className="relative shrink-0 disabled:opacity-40 hover:scale-105 transition-transform" title="点击播放 / 暂停">
                 <SiteMascot mood={mood} active={playing} size={40} />
               </button>
               <div className="min-w-0">
-                <p className="text-[10px] tracking-[0.2em] uppercase opacity-70">KRTPedia Player</p>
-                <p className="text-xs tracking-widest truncate">{label || '本页暂无配乐'}</p>
+                <p className="font-mono text-[11px] tracking-[0.28em] text-[#E0B05F]">
+                  KRTP-SCI-P<span className="krt-cursor">▌</span>
+                </p>
+                <p className="text-[10px] tracking-widest text-[#9a8f7a] truncate">{label || '本页暂无配乐'}</p>
               </div>
             </div>
-            <button onClick={() => setCollapsed(true)} className="shrink-0 text-sm opacity-80 hover:opacity-100">收起</button>
-          </div>
-
-          <div className="px-5 py-4">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div className="min-w-0">
-                <p className="text-sm font-serif text-archive-text truncate">{current?.title || '—'}</p>
-                <p className="text-[11px] text-archive-muted tracking-widest truncate">{current?.artist || '\u00A0'}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => step(-1)} disabled={!current} className="text-archive-accent disabled:opacity-30 text-sm" title="上一首">⏮</button>
-                <button onClick={toggle} disabled={!current}
-                  className="w-9 h-9 rounded-full bg-archive-accent text-archive-paper flex items-center justify-center disabled:opacity-30 text-sm">
-                  {playing ? '❚❚' : '▶'}
-                </button>
-                <button onClick={() => step(1)} disabled={!current} className="text-archive-accent disabled:opacity-30 text-sm" title="下一首">⏭</button>
-              </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#E0B05F]/30 text-[#E0B05F]/90">
+                {locked ? 'MANUAL' : 'AUTO'}
+              </span>
+              <button onClick={() => setCollapsed(true)} className="text-sm text-[#9a8f7a] hover:text-white transition-colors" title="收起">▁</button>
             </div>
           </div>
 
-          <div className="border-t border-archive-border">
-            <button
-              onClick={() => setShowPlaylists(p => !p)}
-              className="w-full px-5 py-3 text-left text-xs tracking-widest text-archive-muted hover:text-archive-accent transition-colors flex items-center justify-between"
-            >
-              <span>{locked ? '已手动选歌单' : '跟随当前页面'}</span>
-              <span>{showPlaylists ? '▲' : '▼'}</span>
+          <div className="relative px-4 pt-3 pb-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-[#f3ead8] truncate">{current?.title || '—'}</p>
+                <p className="text-[11px] text-[#9a8f7a] tracking-wider truncate">{current?.artist || 'NO SIGNAL'}</p>
+              </div>
+              <div className={eqClass}><span /><span /><span /><span /><span /></div>
+            </div>
+
+            <div className="mt-2">
+              <div onClick={seek} className="relative h-1.5 rounded-full bg-white/10 cursor-pointer overflow-hidden group" title="点击定位">
+                <div className="absolute inset-y-0 left-0 bg-[#E0B05F]/85 group-hover:bg-[#E0B05F] transition-colors" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="flex justify-between mt-1 font-mono text-[9px] text-[#8a8069]">
+                <span>{fmt(time)}</span>
+                <span>{dur ? fmt(dur) : '--:--'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-4 py-2">
+              <button onClick={() => step(-1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#E0B05F] hover:border-[#E0B05F]/50 hover:shadow-[0_0_10px_rgba(224,176,95,0.35)] transition-all text-sm" title="上一首">⏮</button>
+              <button onClick={toggle} disabled={!current} className="w-11 h-11 rounded-full bg-[#E0B05F] text-[#16130d] flex items-center justify-center disabled:opacity-30 text-base shadow-[0_0_18px_rgba(224,176,95,0.4)] hover:shadow-[0_0_26px_rgba(224,176,95,0.6)] transition-shadow" title="播放 / 暂停">
+                {playing ? '❚❚' : '▶'}
+              </button>
+              <button onClick={() => step(1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#E0B05F] hover:border-[#E0B05F]/50 hover:shadow-[0_0_10px_rgba(224,176,95,0.35)] transition-all text-sm" title="下一首">⏭</button>
+            </div>
+          </div>
+
+          <div className="relative border-t border-[#E0B05F]/20">
+            <button onClick={() => setShowTracks(p => !p)} className="w-full px-4 py-2.5 flex items-center justify-between text-left">
+              <span className="font-mono text-[10px] tracking-[0.22em] text-[#E0B05F]/90">SEL / 选曲</span>
+              <span className="text-[#9a8f7a] text-xs">{showTracks ? '▲' : '▼'}</span>
             </button>
-            {showPlaylists && (
-              <div className="max-h-52 overflow-y-auto border-t border-archive-border py-1">
-                {PLAYLIST_OPTIONS.map(p => (
-                  <button key={p.key} onClick={() => manualPick(p.key)}
-                    className="w-full px-5 py-2 text-left text-xs tracking-widest text-archive-text hover:bg-archive-bg hover:text-archive-accent transition-colors">
-                    {p.label}
-                  </button>
-                ))}
-                {locked && (
-                  <button onClick={release}
-                    className="w-full px-5 py-2 text-left text-xs tracking-widest text-archive-accent hover:bg-archive-bg transition-colors">
-                    ↻ 恢复跟随页面
-                  </button>
+
+            {showTracks && (
+              <div className="border-t border-[#E0B05F]/20">
+                <div className="flex items-center gap-1 p-1.5">
+                  {tabBtn('pl', '歌单')}
+                  {tabBtn('q', '当前队列')}
+                  {locked && (
+                    <button onClick={release} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#E0B05F] hover:text-white transition-colors" title="恢复跟随页面">↻ AUTO</button>
+                  )}
+                </div>
+
+                {browseTab === 'q' ? (
+                  queue.length === 0 ? (
+                    <p className="px-4 py-3 text-xs text-[#7a7059]">暂无曲目</p>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto pb-1">
+                      {queue.map((s, i) => (
+                        <button key={`${i}-${s.url}`} onClick={() => playQueueAt(i)} className={rowCls(i === index)}>
+                          <span className="w-5 font-mono text-[9px] text-[#7a7059]">{i + 1}</span>
+                          <span className="min-w-0 flex-1 truncate">{s.title}</span>
+                          <span className="text-[10px]">{i === index && playing ? '▶' : ''}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                ) : browseKey ? (
+                  <>
+                    <button onClick={() => setBrowseKey(null)} className="w-full px-4 py-1.5 text-left font-mono text-[10px] tracking-[0.12em] text-[#9a8f7a] hover:text-[#E0B05F] transition-colors">← {playlistLabel(browseKey)}</button>
+                    <div className="max-h-52 overflow-y-auto pb-1">
+                      {playlistSongs.length === 0 ? (
+                        <p className="px-4 py-3 text-xs text-[#7a7059]">此歌单暂无曲目</p>
+                      ) : playlistSongs.map((s, i) => (
+                        <button key={s.id} onClick={() => manualPickAt(browseKey, i)} className={rowCls(s.url === current?.url)}>
+                          <span className="w-5 font-mono text-[9px] text-[#7a7059]">{i + 1}</span>
+                          <span className="min-w-0 flex-1 truncate">{s.title}</span>
+                          <span className="text-[10px]">{s.url === current?.url && playing ? '▶' : ''}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="max-h-56 overflow-y-auto pb-1">
+                    {PLAYLIST_OPTIONS.map(p => {
+                      const c = songs.filter(s => s.playlist === p.key).length;
+                      return (
+                        <button key={p.key} onClick={() => setBrowseKey(p.key)} className="w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs text-[#d6cbb4] hover:bg-[#E0B05F]/10 hover:text-[#E0B05F] transition-colors">
+                          <span className="min-w-0 flex-1 truncate">{p.label}</span>
+                          <span className="shrink-0 font-mono text-[9px] text-[#7a7059]">{c}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
