@@ -287,4 +287,35 @@
 .krt-eq span:nth-child(4) { height: 85%; animation-delay: .45s; }
 .krt-eq span:nth-child(5) { height: 52%; animation-delay: .6s; }
 @keyframes krtEq { 0%, 100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+
+/* 致谢名单轮播 */
+.krt-thanks-stage {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 62% 58% at 50% 44%, rgba(127,184,228,0.12), transparent 70%),
+    linear-gradient(165deg, rgba(20,29,46,0.78), rgba(9,11,18,0.92));
+  border: 1px solid rgba(127,184,228,0.28);
+  box-shadow: 0 0 42px rgba(127,184,228,0.10), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.krt-thanks-ring {
+  position: absolute; inset: -10px; border-radius: 9999px;
+  border: 1px dashed rgba(127,184,228,0.35);
+  animation: thanksSpin 28s linear infinite;
+  pointer-events: none;
+}
+.krt-thanks-ring::after {
+  content: ''; position: absolute; top: -3px; left: 50%;
+  width: 6px; height: 6px; border-radius: 9999px;
+  background: #7FB8E4; box-shadow: 0 0 10px rgba(127,184,228,0.9);
+}
+@keyframes thanksSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.krt-thanks-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7FB8E4, #bcdcf5);
+  box-shadow: 0 0 12px rgba(127,184,228,0.6);
+  animation: thanksFill 4.2s linear forwards;
+}
+@keyframes thanksFill { from { width: 0%; } to { width: 100%; } }
+.krt-thanks-caret { animation: krtBlink 1.4s steps(2) infinite; }
 }

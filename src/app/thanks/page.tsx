@@ -1,4 +1,5 @@
 import Breadcrumb from '@/components/Breadcrumb';
+import ThanksCarousel from '@/components/ThanksCarousel';
 import { createClient, supabaseConfigured } from '@/lib/supabase/server';
 import type { Metadata } from 'next';
 
@@ -8,10 +9,6 @@ interface Supporter {
   display_name: string | null;
   avatar_url: string | null;
   title: string | null;
-}
-
-function initialOf(name: string | null): string {
-  return (name || '佚')[0] ?? '佚';
 }
 
 export default async function ThanksPage() {
@@ -49,26 +46,7 @@ export default async function ThanksPage() {
           <p className="font-serif text-xl text-archive-muted">名单尚在书写中…</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {users.map(u => (
-            <div key={u.display_name ?? u.title ?? Math.random().toString()}
-              className="flex items-center gap-3 border border-archive-border bg-archive-paper px-5 py-4 hover:border-archive-accent/50 transition-colors">
-              {u.avatar_url ? (
-                <img src={u.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-archive-border" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-archive-accent/15 grid place-items-center font-serif text-lg text-archive-accent">
-                  {initialOf(u.display_name)}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-sm text-archive-text tracking-widest">{u.display_name || '佚名撰稿人'}</p>
-                {u.title && (
-                  <p className="truncate text-[10px] text-archive-accent tracking-widest mt-0.5">「{u.title}」</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ThanksCarousel users={users} />
       )}
     </div>
   );
