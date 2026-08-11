@@ -7,6 +7,7 @@ import { PLAYLIST_OPTIONS, playlistForPath, playlistLabel } from '@/data/music';
 import { mascotForPath } from '@/data/mascot';
 import SiteMascot from '@/components/SiteMascot';
 import Markdown from '@/components/Markdown';
+import { downloadAudio, isAudioCached, cachedAudioObjectUrl, isAudioCacheSupported } from '@/lib/audioCache';
 
 interface Song { id: string; title: string; artist: string; url: string; playlist: string }
 
@@ -77,11 +78,17 @@ export default function MusicProvider() {
   const [dur, setDur] = useState(0);
   const [online, setOnline] = useState<number | null>(null);
   const [caption, setCaption] = useState<{ title: string; artist: string } | null>(null);
+  const [cacheOn, setCacheOn] = useState(false);
+  const [srcUrl, setSrcUrl] = useState<string | null>(null);
+  const [dl, setDl] = useState<Record<string, number>>({});
   const audioRef = useRef<HTMLAudioElement>(null);
   const fadeTimer = useRef<number | null>(null);
   const appliedSrc = useRef<string | null>(null);
   const captionTimer = useRef<number | null>(null);
   const startedRef = useRef(false);
+  const objUrlRef = useRef<string | null>(null);
+  const latestUrlRef = useRef<string | null>(null);
+  const dlBusyRef = useRef<Set<string>>(new Set());
 
   const current = queue[index];
 
@@ -122,6 +129,37 @@ export default function MusicProvider() {
     }
   }, []);
 
+  const applySource = useCallback(async (url: string) => {
+    const cached = await cachedAudioObjectUrl(url);
+    if (latestUrlRef.current !== url) return;
+    if (objUrlRef.current) { URL.revokeObjectURL(objUrlRef.current); objUrlRef.current = null; }
+    if (cached) objUrlRef.current = cached;
+    setSrcUrl(cached ?? url);
+  }, []);
+
+  const doDownload = useCallback(async (url: string) => {
+    if (dlBusyRef.current.has(url)) return;
+    dlBusyRef.current.add(url);
+    setDl(prev => ({ ...prev, [url]: -1 }));
+    try {
+      await downloadAudio(url, p => setDl(prev => ({ ...prev, [url]: Math.round(p * 100) })));
+      setDl(prev => ({ ...prev, [url]: 100 }));
+      if (latestUrlRef.current === url) applySource(url);
+    } catch {
+      setDl(prev => { const n = { ...prev }; delete n[url]; return n; });
+    } finally {
+      dlBusyRef.current.delete(url);
+    }
+  }, [applySource]);
+
+  const downloadAll = useCallback((urls: string[]) => {
+    (async () => {
+      for (const u of urls) {
+        if (u) await doDownload(u);
+      }
+    })();
+  }, [doDownload]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -134,9 +172,24 @@ export default function MusicProvider() {
   }, []);
 
   useEffect(() => {
+    isAudioCacheSupported().then(ok => { if (!ok) setCacheOn(false); else setCacheOn(true); });
+  }, []);
+
+  useEffect(() => {
+    if (!current?.url) {
+      latestUrlRef.current = null;
+      if (objUrlRef.current) { URL.revokeObjectURL(objUrlRef.current); objUrlRef.current = null; }
+      setSrcUrl(null);
+      return;
+    }
+    latestUrlRef.current = current.url;
+    applySource(current.url);
+  }, [current?.url, applySource]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    const url = current?.url;
+    const url = srcUrl;
     if (!url) {
       cancelFade();
       appliedSrc.current = null;
@@ -153,7 +206,34 @@ export default function MusicProvider() {
     if (playing) {
       audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
     }
-  }, [current?.url]);
+  }, [srcUrl]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !srcUrl) return;
+    if (playing) {
+      audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
+    } else {
+      fadeToVolume(audio, 0, 300, () => audio.pause());
+    }
+  }, [playing]);
+
+  useEffect(() => () => {
+    if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const s of songs) {
+        if (cancelled || !s.url) break;
+        if (dl[s.url] === undefined && await isAudioCached(s.url)) {
+          setDl(prev => prev[s.url] === undefined ? { ...prev, [s.url]: 100 } : prev);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [songs]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -467,6 +547,14 @@ export default function MusicProvider() {
                 <span>{fmt(time)}</span>
                 <span>{dur ? fmt(dur) : '--:--'}</span>
               </div>
+              {cacheOn && current?.url && dl[current.url] !== undefined && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="font-mono text-[8px] tracking-[0.2em] text-[#7FB8E4]/90">{dl[current.url] === 100 ? 'CACHED' : '⬇'}</span>
+                  <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-[#7FB8E4]" style={{ width: `${Math.min(dl[current.url], 100)}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-center gap-3 py-2">
@@ -510,6 +598,12 @@ export default function MusicProvider() {
                 <div className="flex items-center gap-1 p-1.5">
                   {tabBtn('pl', '歌单')}
                   {tabBtn('q', '当前队列')}
+                  <span className="flex-1" />
+                  {cacheOn && browseKey && playlistSongs.length > 0 && (
+                    <button onClick={() => downloadAll(playlistSongs.map(s => s.url).filter(Boolean))} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#7FB8E4] hover:text-white transition-colors" title="缓存整张歌单，供离线或快速播放">
+                      {playlistSongs.every(s => !s.url || dl[s.url] === 100) ? 'CACHED' : '⬇ 全部'}
+                    </button>
+                  )}
                   {locked && (
                     <button onClick={release} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#7FB8E4] hover:text-white transition-colors" title="恢复跟随页面">↻ AUTO</button>
                   )}

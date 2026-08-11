@@ -22,6 +22,7 @@ export default function ChatRoom() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [titles, setTitles] = useState<Record<string, string>>({});
+  const [botOn, setBotOn] = useState<boolean>(() => typeof window !== 'undefined' && window.localStorage.getItem('krt-bot') !== '0');
   const listRef = useRef<HTMLDivElement>(null);
 
   const append = useCallback((m: Message) => {
@@ -108,6 +109,9 @@ export default function ChatRoom() {
       });
       if (error) throw new Error(error.message);
       setText('');
+      if (botOn) {
+        fetch('/api/chat/bot', { method: 'POST' }).catch(() => {});
+      }
     } catch (e: any) {
       setError(e.message || '发送失败。');
     } finally {
@@ -128,20 +132,24 @@ export default function ChatRoom() {
         <>
           <div ref={listRef} className="h-[520px] overflow-y-auto bg-archive-paper border border-archive-border p-6 space-y-3 mb-4">
             {msgs.length === 0 && <p className="text-sm text-archive-muted tracking-widest">还没有消息，来说第一句话吧。</p>}
-            {msgs.map(m => (
-              <div key={m.id} className="flex items-start gap-3">
-                <span className="shrink-0 flex items-center gap-1.5 mt-1">
-                  {titles[m.user_id] && (
-                    <span className="px-1.5 py-0.5 text-[10px] tracking-widest text-archive-paper bg-archive-accent leading-none">{titles[m.user_id]}</span>
-                  )}
-                  <span className="text-xs tracking-widest text-archive-accent">{m.author_name}</span>
-                </span>
-                <div className="flex-1 bg-archive-bg/60 border border-archive-border px-4 py-2.5">
-                  <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{renderStickers(m.content)}</p>
-                  <p className="text-[10px] text-archive-muted tracking-widest mt-1.5">{fmt(m.created_at)}</p>
+            {msgs.map(m => {
+              const isBot = m.author_name === 'SCI-Petia';
+              return (
+                <div key={m.id} className="flex items-start gap-3">
+                  <span className="shrink-0 flex items-center gap-1.5 mt-1">
+                    {!isBot && titles[m.user_id] && (
+                      <span className="px-1.5 py-0.5 text-[10px] tracking-widest text-archive-paper bg-archive-accent leading-none">{titles[m.user_id]}</span>
+                    )}
+                    {isBot && <SiteMascot mood="chat" active size={20} />}
+                    <span className={`text-xs tracking-widest ${isBot ? 'text-[#7FB8E4]' : 'text-archive-accent'}`}>{m.author_name}</span>
+                  </span>
+                  <div className={`flex-1 border px-4 py-2.5 ${isBot ? 'bg-[#7FB8E4]/10 border-[#7FB8E4]/25' : 'bg-archive-bg/60 border-archive-border'}`}>
+                    <p className="text-sm text-archive-text leading-relaxed break-words whitespace-pre-wrap">{renderStickers(m.content)}</p>
+                    <p className="text-[10px] text-archive-muted tracking-widest mt-1.5">{fmt(m.created_at)}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
@@ -152,6 +160,14 @@ export default function ChatRoom() {
               </button>
             ))}
             <span className="shrink-0 text-[10px] text-archive-muted tracking-widest">点击插入站娘表情</span>
+            <label className="shrink-0 flex items-center gap-1.5 pl-3 ml-2 border-l border-archive-border text-[11px] text-archive-muted tracking-widest cursor-pointer select-none" title="开启后，你发送消息时站娘会随机以一个表情应答">
+              <input type="checkbox" checked={botOn} onChange={e => {
+                const v = e.target.checked;
+                setBotOn(v);
+                try { window.localStorage.setItem('krt-bot', v ? '1' : '0'); } catch { /* 忽略 */ }
+              }} className="accent-[#7FB8E4]" />
+              站娘应答
+            </label>
           </div>
 
           <div className="flex gap-3">
