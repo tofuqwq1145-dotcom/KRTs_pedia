@@ -226,18 +226,18 @@ export default function MusicProvider() {
 
   const mood = mascotForPath(pathname);
   const pct = dur ? Math.min((time / dur) * 100, 100) : 0;
-  const eqClass = playing ? 'krt-eq text-[#E0B05F]' : 'krt-eq paused text-[#E0B05F]';
+  const eqClass = playing ? 'krt-eq text-[#7FB8E4]' : 'krt-eq paused text-[#7FB8E4]';
   const playlistSongs = browseKey ? songs.filter(s => s.playlist === browseKey) : [];
 
   const tabBtn = (tab: 'pl' | 'q', text: string) => (
     <button onClick={() => setBrowseTab(tab)}
-      className={`flex-1 py-1.5 rounded text-[10px] font-mono tracking-[0.15em] transition-colors ${browseTab === tab ? 'bg-[#E0B05F]/20 text-[#E0B05F]' : 'text-[#8a8069] hover:text-[#d6cbb4]'}`}>
+      className={`flex-1 py-1.5 rounded text-[10px] font-mono tracking-[0.15em] transition-colors ${browseTab === tab ? 'bg-[#7FB8E4]/20 text-[#7FB8E4]' : 'text-[#8a8069] hover:text-[#d6cbb4]'}`}>
       {text}
     </button>
   );
 
   const rowCls = (active: boolean) =>
-    `w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs transition-colors ${active ? 'bg-[#E0B05F]/10 text-[#E0B05F]' : 'text-[#d6cbb4] hover:bg-[#E0B05F]/10 hover:text-[#E0B05F]'}`;
+    `w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs transition-colors ${active ? 'bg-[#7FB8E4]/10 text-[#7FB8E4]' : 'text-[#d6cbb4] hover:bg-[#7FB8E4]/10 hover:text-[#7FB8E4]'}`;
 
   return (
     <>
@@ -245,12 +245,12 @@ export default function MusicProvider() {
       {collapsed ? (
         <button
           onClick={() => setCollapsed(false)}
-          className={`fixed bottom-6 right-6 z-50 p-0.5 rounded-full transition-transform hover:scale-105 ${playing ? 'shadow-[0_0_22px_rgba(224,176,95,0.55)] ring-1 ring-[#E0B05F]/70' : 'shadow-xl ring-1 ring-white/10'}`}
+          className={`fixed bottom-6 right-6 z-50 p-0.5 rounded-full transition-transform hover:scale-105 ${playing ? 'shadow-[0_0_22px_rgba(127,184,228,0.55)] ring-1 ring-[#7FB8E4]/70' : 'shadow-xl ring-1 ring-white/10'}`}
           title={label || '打开音乐'}
           aria-label={label || '打开音乐'}
         >
           <span className="block rounded-full overflow-hidden">
-            <SiteMascot mood={mood} active={playing} size={60} />
+            <SiteMascot mood={mood} active={playing} size={72} />
           </span>
         </button>
       ) : (
@@ -261,20 +261,20 @@ export default function MusicProvider() {
           <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
           <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
 
-          <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#E0B05F]/20">
+          <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#7FB8E4]/20">
             <div className="flex items-center gap-3 min-w-0 mr-2">
               <button onClick={toggle} disabled={!current} className="relative shrink-0 disabled:opacity-40 hover:scale-105 transition-transform" title="点击播放 / 暂停">
-                <SiteMascot mood={mood} active={playing} size={40} />
+                <SiteMascot mood={mood} active={playing} size={56} />
               </button>
               <div className="min-w-0">
-                <p className="font-mono text-[11px] tracking-[0.28em] text-[#E0B05F]">
+                <p className="font-mono text-[11px] tracking-[0.28em] text-[#7FB8E4]">
                   KRTP-SCI-P<span className="krt-cursor">▌</span>
                 </p>
                 <p className="text-[10px] tracking-widest text-[#9a8f7a] truncate">{label || '本页暂无配乐'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#E0B05F]/30 text-[#E0B05F]/90">
+              <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#7FB8E4]/30 text-[#7FB8E4]/90">
                 {locked ? 'MANUAL' : 'AUTO'}
               </span>
               <button onClick={() => setCollapsed(true)} className="text-sm text-[#9a8f7a] hover:text-white transition-colors" title="收起">▁</button>
@@ -292,7 +292,7 @@ export default function MusicProvider() {
 
             <div className="mt-2">
               <div onClick={seek} className="relative h-1.5 rounded-full bg-white/10 cursor-pointer overflow-hidden group" title="点击定位">
-                <div className="absolute inset-y-0 left-0 bg-[#E0B05F]/85 group-hover:bg-[#E0B05F] transition-colors" style={{ width: `${pct}%` }} />
+                <div className="absolute inset-y-0 left-0 bg-[#7FB8E4]/85 group-hover:bg-[#7FB8E4] transition-colors" style={{ width: `${pct}%` }} />
               </div>
               <div className="flex justify-between mt-1 font-mono text-[9px] text-[#8a8069]">
                 <span>{fmt(time)}</span>
@@ -301,27 +301,27 @@ export default function MusicProvider() {
             </div>
 
             <div className="flex items-center justify-center gap-4 py-2">
-              <button onClick={() => step(-1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#E0B05F] hover:border-[#E0B05F]/50 hover:shadow-[0_0_10px_rgba(224,176,95,0.35)] transition-all text-sm" title="上一首">⏮</button>
-              <button onClick={toggle} disabled={!current} className="w-11 h-11 rounded-full bg-[#E0B05F] text-[#16130d] flex items-center justify-center disabled:opacity-30 text-base shadow-[0_0_18px_rgba(224,176,95,0.4)] hover:shadow-[0_0_26px_rgba(224,176,95,0.6)] transition-shadow" title="播放 / 暂停">
+              <button onClick={() => step(-1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#7FB8E4] hover:border-[#7FB8E4]/50 hover:shadow-[0_0_10px_rgba(127,184,228,0.35)] transition-all text-sm" title="上一首">⏮</button>
+              <button onClick={toggle} disabled={!current} className="w-11 h-11 rounded-full bg-[#7FB8E4] text-[#0c1521] flex items-center justify-center disabled:opacity-30 text-base shadow-[0_0_18px_rgba(127,184,228,0.4)] hover:shadow-[0_0_26px_rgba(127,184,228,0.6)] transition-shadow" title="播放 / 暂停">
                 {playing ? '❚❚' : '▶'}
               </button>
-              <button onClick={() => step(1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#E0B05F] hover:border-[#E0B05F]/50 hover:shadow-[0_0_10px_rgba(224,176,95,0.35)] transition-all text-sm" title="下一首">⏭</button>
+              <button onClick={() => step(1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#7FB8E4] hover:border-[#7FB8E4]/50 hover:shadow-[0_0_10px_rgba(127,184,228,0.35)] transition-all text-sm" title="下一首">⏭</button>
             </div>
           </div>
 
-          <div className="relative border-t border-[#E0B05F]/20">
+          <div className="relative border-t border-[#7FB8E4]/20">
             <button onClick={() => setShowTracks(p => !p)} className="w-full px-4 py-2.5 flex items-center justify-between text-left">
-              <span className="font-mono text-[10px] tracking-[0.22em] text-[#E0B05F]/90">SEL / 选曲</span>
+              <span className="font-mono text-[10px] tracking-[0.22em] text-[#7FB8E4]/90">SEL / 选曲</span>
               <span className="text-[#9a8f7a] text-xs">{showTracks ? '▲' : '▼'}</span>
             </button>
 
             {showTracks && (
-              <div className="border-t border-[#E0B05F]/20">
+              <div className="border-t border-[#7FB8E4]/20">
                 <div className="flex items-center gap-1 p-1.5">
                   {tabBtn('pl', '歌单')}
                   {tabBtn('q', '当前队列')}
                   {locked && (
-                    <button onClick={release} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#E0B05F] hover:text-white transition-colors" title="恢复跟随页面">↻ AUTO</button>
+                    <button onClick={release} className="shrink-0 px-2 py-1.5 rounded text-[9px] font-mono tracking-[0.12em] text-[#7FB8E4] hover:text-white transition-colors" title="恢复跟随页面">↻ AUTO</button>
                   )}
                 </div>
 
@@ -341,7 +341,7 @@ export default function MusicProvider() {
                   )
                 ) : browseKey ? (
                   <>
-                    <button onClick={() => setBrowseKey(null)} className="w-full px-4 py-1.5 text-left font-mono text-[10px] tracking-[0.12em] text-[#9a8f7a] hover:text-[#E0B05F] transition-colors">← {playlistLabel(browseKey)}</button>
+                    <button onClick={() => setBrowseKey(null)} className="w-full px-4 py-1.5 text-left font-mono text-[10px] tracking-[0.12em] text-[#9a8f7a] hover:text-[#7FB8E4] transition-colors">← {playlistLabel(browseKey)}</button>
                     <div className="max-h-52 overflow-y-auto pb-1">
                       {playlistSongs.length === 0 ? (
                         <p className="px-4 py-3 text-xs text-[#7a7059]">此歌单暂无曲目</p>
@@ -359,7 +359,7 @@ export default function MusicProvider() {
                     {PLAYLIST_OPTIONS.map(p => {
                       const c = songs.filter(s => s.playlist === p.key).length;
                       return (
-                        <button key={p.key} onClick={() => setBrowseKey(p.key)} className="w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs text-[#d6cbb4] hover:bg-[#E0B05F]/10 hover:text-[#E0B05F] transition-colors">
+                        <button key={p.key} onClick={() => setBrowseKey(p.key)} className="w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs text-[#d6cbb4] hover:bg-[#7FB8E4]/10 hover:text-[#7FB8E4] transition-colors">
                           <span className="min-w-0 flex-1 truncate">{p.label}</span>
                           <span className="shrink-0 font-mono text-[9px] text-[#7a7059]">{c}</span>
                         </button>
