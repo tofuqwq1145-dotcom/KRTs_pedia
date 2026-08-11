@@ -63,7 +63,7 @@ export default function PetiaMemory() {
   const statusText: Record<string, string> = { pending: '待审', approved: '已录', rejected: '驳回' };
 
   return (
-    <aside className="krt-panel relative rounded-2xl overflow-hidden text-[#efe6d5]">
+    <aside className="krt-panel relative rounded-2xl text-[#efe6d5]">
       <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
       <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
       <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
@@ -72,11 +72,11 @@ export default function PetiaMemory() {
       <div className="relative flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#7FB8E4]/20">
         <button onClick={tapMascot} className="relative shrink-0" title="点击召唤，随机切换她的表情动图">
           {bubble && (
-            <span className="absolute -top-1 right-full mr-2 px-2 py-0.5 rounded-md bg-[#7FB8E4]/15 border border-[#7FB8E4]/40 text-[#bcdcf5] text-[10px] tracking-widest whitespace-nowrap animate-bubble">
+            <span className="absolute -top-9 left-0 z-10 px-2 py-0.5 rounded-md bg-[#0c1521]/95 border border-[#7FB8E4]/50 text-[#bcdcf5] text-[11px] tracking-widest whitespace-nowrap shadow-[0_4px_16px_rgba(0,0,0,0.5)] animate-bubble">
               {bubble}
             </span>
           )}
-          <SiteMascot mood={mood} active={active} size={34} />
+          <SiteMascot mood={mood} active={active} size={56} />
         </button>
         <p className="font-mono text-[11px] tracking-[0.28em] text-[#7FB8E4]">MEMORY <span className="krt-cursor">▌</span></p>
         <span className="font-mono text-[9px] tracking-[0.18em] px-2 py-0.5 rounded-sm border border-[#7FB8E4]/30 text-[#7FB8E4]/90">ARCHIVE</span>
