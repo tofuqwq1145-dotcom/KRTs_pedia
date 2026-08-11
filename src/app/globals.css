@@ -105,6 +105,7 @@
 .anim-d3 { animation-delay: 0.28s; }
 .anim-d4 { animation-delay: 0.42s; }
 .anim-d5 { animation-delay: 0.56s; }
+.anim-d6 { animation-delay: 0.70s; }
 @media (prefers-reduced-motion: reduce) {
   .anim-rise { animation: none; }
 }

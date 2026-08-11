@@ -37,22 +37,32 @@ export default async function Home() {
         <div className="hero-grid absolute inset-0" aria-hidden="true" />
         <div className="hero-scan absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-0 bg-archive-bg/60" aria-hidden="true" />
-        <div className="relative max-w-5xl mx-auto px-6 py-32 md:py-40 text-center">
+        <div className="relative max-w-5xl mx-auto px-6 py-28 md:py-36">
           <div className="hero-breathe" aria-hidden="true" />
-          <div className="relative inline-block px-10 py-6">
+          <div className="relative inline-block text-left px-10 py-6">
             <span className="hud-cr hud-cr-tl" aria-hidden="true" />
             <span className="hud-cr hud-cr-tr" aria-hidden="true" />
             <span className="hud-cr hud-cr-bl" aria-hidden="true" />
             <span className="hud-cr hud-cr-br" aria-hidden="true" />
             <p className="anim-rise anim-d1 font-mono text-xs md:text-sm tracking-[0.45em] text-archive-accent uppercase mb-8">Medieval Digital Archive</p>
-            <h1 className="hero-title-glow font-serif text-5xl md:text-8xl font-bold tracking-tight text-archive-text">
+            <h1 className="hero-title-glow font-serif text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-archive-text">
               <span className="anim-rise anim-d2 block">KRTPEDIA</span>
-              <span className="anim-rise anim-d3 text-archive-accent font-normal italic text-3xl md:text-5xl mt-5 block">Archive of KRT Medieval</span>
+              <span className="anim-rise anim-d3 text-archive-accent font-normal italic text-2xl md:text-4xl mt-4 block">Archive of KRT Medieval</span>
             </h1>
-            <p className="anim-rise anim-d4 font-serif text-xl text-archive-muted mb-12 tracking-[0.3em]">« 记录一个世界的诞生、战争、国家与文明。 »</p>
-            <div className="anim-rise anim-d5 flex justify-center gap-6">
+            <p className="anim-rise anim-d4 font-serif text-lg md:text-xl text-archive-muted mb-10 tracking-[0.3em]">« 记录一个世界的诞生、战争、国家与文明。 »</p>
+            <div className="anim-rise anim-d5 flex flex-wrap gap-6">
               <Link href="/nations" className="px-8 py-3 bg-archive-accent text-archive-paper text-sm tracking-widest hover:bg-[#A9D4F0] transition-colors">进入档案馆</Link>
               <Link href="/submit" className="px-8 py-3 border border-archive-accent/40 text-archive-text text-sm tracking-widest hover:border-archive-accent hover:text-archive-accent transition-colors">撰写投稿</Link>
+            </div>
+            <div className="anim-rise anim-d6 mt-12 grid gap-3 sm:grid-cols-2">
+              <div className="border border-archive-accent/30 bg-archive-paper/50 px-5 py-3">
+                <p className="font-mono text-[9px] tracking-[0.3em] text-archive-accent uppercase mb-1.5">服务器主群 · 审核群</p>
+                <p className="font-mono text-base tracking-[0.25em] text-archive-text">539902413</p>
+              </div>
+              <div className="border border-archive-accent/30 bg-archive-paper/50 px-5 py-3">
+                <p className="font-mono text-[9px] tracking-[0.3em] text-archive-accent uppercase mb-1.5">KRPT · 交流群</p>
+                <p className="font-mono text-base tracking-[0.25em] text-archive-text">1101750422</p>
+              </div>
             </div>
           </div>
         </div>
