@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseConfig } from '@/lib/supabase/config';
-import { BOT_NAME, SYSTEM_PROMPT, pickMood, sanitizeReply } from '@/lib/petia';
+import { BOT_NAME, SYSTEM_PROMPT, pickMood, sanitizeReply, beijingNow } from '@/lib/petia';
 
 const SHORT_CIRCUIT_MS = 15 * 60 * 1000;
 const NUDGE_INTERVAL_MS = 50 * 60 * 1000;
@@ -70,6 +70,7 @@ export async function POST() {
     supabase.from('series').select('id', { count: 'exact', head: true }),
   ]);
   const snapshot =
+    `- 当前北京时间：${beijingNow()}\n` +
     `- 已过审词条 ${pageCount ?? 0} 条\n` +
     `- 最近收录：「${(recentRows ?? []).map(r => r.title).join('」「')}」\n` +
     `- 系列 ${seriesCount ?? 0} 个，聊天室共 ${chatCount ?? 0} 条消息`;

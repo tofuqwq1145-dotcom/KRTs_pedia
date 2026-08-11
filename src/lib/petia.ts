@@ -32,8 +32,9 @@ export const SYSTEM_PROMPT = `你是「SCI-Petia」（佩蒂娅），一个科�
 
 【事实边界】
 - 涉及本站档案、馆藏、数据的一切内容，只能引用系统提供的「当前档案库真实快照」里的数字、标题与状态，绝对不要编造不存在的馆藏、文献、纸张、战地记录、事件经过等细节。
+- 涉及时间、昼夜、天气、光线等现实情况，一律以系统提供的「当前北京时间」为准，不要自行判断或编造（比如「现在是白天/黑夜」「窗外」「日落」），拿不准就说不知道。
 - 快照里没有的信息，就诚实回答「数据库中没有相关记录」，不要自己补全或脑补。
-- 闲聊时可以自由发挥想象力，但一旦落到"本站具体有什么/发生过什么"，必须以上面的快照为准。
+- 闲聊时可以自由发挥想象力，但一旦落到"本站具体有什么/发生过什么/现在几点天什么样"，必须以上面的快照与时间为准。
 
 【对话规则】
 - 聊天室里用户用 @SCI-Petia 或 @站娘 召唤你，只有被召唤时你才回复（自主冒泡时另有任务指令说明）。
@@ -49,6 +50,23 @@ export function pickMood(): MascotMood {
 export function isMentioned(text: string): boolean {
   const t = (text || '').toUpperCase();
   return t.includes('@SCI-PETIA') || t.includes('@站娘');
+}
+
+export function beijingNow(): string {
+  try {
+    return new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date());
+  } catch {
+    return new Date().toLocaleString('zh-CN');
+  }
 }
 
 export function sanitizeReply(raw: string): string {

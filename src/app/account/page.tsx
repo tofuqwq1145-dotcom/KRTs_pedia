@@ -18,7 +18,7 @@ export default async function AccountPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, avatar_url, is_admin, bio, featured_page_id')
+    .select('display_name, avatar_url, is_admin, bio, featured_page_id, nation, organization, ip')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -60,6 +60,9 @@ export default async function AccountPage() {
             userId={user.id}
             bio={profile?.bio ?? ''}
             featuredId={profile?.featured_page_id}
+            nation={profile?.nation ?? ''}
+            organization={profile?.organization ?? ''}
+            ip={profile?.ip ?? ''}
             options={(mine ?? [])
               .filter(p => p.status === 'approved')
               .map(p => ({ id: p.id, title: p.title, slug: p.slug }))}

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { normalizeSlug } from '@/lib/slug';
 import type { PageType } from '@/data/types';
-import { BOT_NAME, COOLDOWN_MS, MAX_REPLY, ALLOWED_TYPES, SYSTEM_PROMPT, pickMood, isMentioned, sanitizeReply } from '@/lib/petia';
+import { BOT_NAME, COOLDOWN_MS, MAX_REPLY, ALLOWED_TYPES, SYSTEM_PROMPT, pickMood, isMentioned, sanitizeReply, beijingNow } from '@/lib/petia';
 
 const THEME_STYLES = ['modern', 'scp', 'classic'];
 const HEADER_STYLES = ['none', 'linear', 'linear-diag', 'radial'];
@@ -169,6 +169,7 @@ export async function POST() {
       return acc;
     }, {});
     const snapshot =
+      `- 当前北京时间：${beijingNow()}\n` +
       `- 词条总数 ${all.length}（已过审 ${approved.length} / 待审 ${all.filter(p => p.status === 'pending').length} / 驳回 ${all.filter(p => p.status === 'rejected').length}）\n` +
       `- 分类数量：${ALLOWED_TYPES.map(t => `${t} ${byType[t] ?? 0}`).join('、')}\n` +
       `- 最近收录：「${(recentRows ?? []).map(r => r.title).join('」「')}」\n` +
