@@ -188,21 +188,27 @@ export default function MusicProvider() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    let iv: number | null = null;
+    async function refresh() {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (cancelled) return;
       setUserId(user?.id ?? null);
-      if (!user) return;
+      if (!user) {
+        setPetiaCount(0);
+        return;
+      }
       const { count } = await supabase
         .from('chat_messages')
         .select('id', { count: 'exact', head: true })
         .eq('author_name', 'SCI-Petia')
         .eq('user_id', user.id);
       if (!cancelled) setPetiaCount(count ?? 0);
-    })();
-    return () => { cancelled = true; };
+    }
+    refresh();
+    iv = window.setInterval(refresh, 25000);
+    return () => { cancelled = true; if (iv !== null) window.clearInterval(iv); };
   }, []);
 
   const isLocked = useCallback((s: Song) => {
@@ -214,6 +220,55 @@ export default function MusicProvider() {
 
   const unlockedSongs = useMemo(() => songs.filter(s => !isLocked(s)), [songs, isLocked]);
 
+  const [celebrate, setCelebrate] = useState<{ title: string; text: string } | null>(null);
+  const prevPetiaCountRef = useRef<number | null>(null);
+  const armedRef = useRef(false);
+  const celebrateTimer = useRef<number | null>(null);
+
+  async function fetchCelebration(songTitle: string): Promise<string> {
+    try {
+      const r = await fetch('/api/chat/bot/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ songTitle }),
+        cache: 'no-store',
+      });
+      const j = await r.json().catch(() => null);
+      if (j?.text) return j.text as string;
+    } catch { /* 忽略 */ }
+    return `「${songTitle}」已解锁。谢谢这段时间陪我聊了这么多……以后也继续一起记录下去吧。`;
+  }
+
+  useEffect(() => {
+    if (!armedRef.current) {
+      if (songs.length > 0) {
+        armedRef.current = true;
+        prevPetiaCountRef.current = petiaCount;
+      }
+      return;
+    }
+    const prev = prevPetiaCountRef.current ?? petiaCount;
+    if (petiaCount > prev) {
+      const song = songs.find(s =>
+        s.unlock_type === 'petia_chats' &&
+        (s.unlock_goal || 0) > prev &&
+        (s.unlock_goal || 0) <= petiaCount,
+      );
+      if (song) {
+        setLocked(true);
+        setShuffle(false);
+        setLoopOne(false);
+        playQueue([{ title: song.title, artist: song.artist, url: song.url }], 0, playlistLabel(song.playlist), true);
+        startedRef.current = true;
+        if (celebrateTimer.current !== null) window.clearTimeout(celebrateTimer.current);
+        setCelebrate({ title: song.title, text: '……' });
+        fetchCelebration(song.title).then(text => setCelebrate({ title: song.title, text }));
+        celebrateTimer.current = window.setTimeout(() => setCelebrate(null), 12000);
+      }
+    }
+    prevPetiaCountRef.current = petiaCount;
+  }, [petiaCount, songs, playQueue]);
+
   function showLockHint(s: Song) {
     const goal = s.unlock_goal || 0;
     setLockMsg(`🔒 与佩蒂娅交流 ${goal} 次解锁（当前 ${petiaCount} 次）`);
@@ -223,6 +278,7 @@ export default function MusicProvider() {
 
   useEffect(() => () => {
     if (lockMsgTimer.current !== null) window.clearTimeout(lockMsgTimer.current);
+    if (celebrateTimer.current !== null) window.clearTimeout(celebrateTimer.current);
   }, []);
 
   useEffect(() => {
@@ -595,6 +651,25 @@ export default function MusicProvider() {
 
   return (
     <>
+      {celebrate && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 backdrop-blur-sm px-4">
+          <div className="krt-panel relative w-full max-w-md rounded-2xl text-[#efe6d5] px-8 py-10 text-center">
+            <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
+            <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
+            <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
+            <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
+            <div className="mx-auto w-fit rounded-full shadow-[0_0_40px_rgba(127,184,228,0.5)]">
+              <SiteMascot mood="chat" active size={88} />
+            </div>
+            <p className="mt-5 font-mono text-[10px] tracking-[0.3em] text-[#7FB8E4]">ACHIEVEMENT UNLOCKED</p>
+            <p className="mt-2 font-serif text-2xl text-[#f3ead8]">「{celebrate.title}」</p>
+            <p className="mt-4 text-sm text-[#bcdcf5] leading-relaxed min-h-[3.5rem]">{celebrate.text}</p>
+            <button onClick={() => setCelebrate(null)} className="mt-7 px-8 py-2.5 bg-[#7FB8E4] text-[#0c1521] text-xs font-mono tracking-[0.2em] rounded hover:bg-[#9ecfe9] transition-colors">
+              太棒了
+            </button>
+          </div>
+        </div>
+      )}
       {dlModal !== 'hidden' && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
           <div className="krt-panel relative w-full max-w-sm rounded-2xl text-[#efe6d5] p-6">
