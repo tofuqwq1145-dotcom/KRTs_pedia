@@ -21,8 +21,38 @@ export default function MusicProvider() {
   const [locked, setLocked] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const fadeTimer = useRef<number | null>(null);
+  const appliedSrc = useRef<string | null>(null);
 
   const current = queue[index];
+
+  function cancelFade() {
+    if (fadeTimer.current !== null) {
+      cancelAnimationFrame(fadeTimer.current);
+      fadeTimer.current = null;
+    }
+  }
+
+  function fadeToVolume(audio: HTMLAudioElement, to: number, dur: number, onDone?: () => void) {
+    cancelFade();
+    const from = audio.volume;
+    if (from === to) {
+      onDone?.();
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / dur, 1);
+      audio.volume = from + (to - from) * p;
+      if (p < 1) {
+        fadeTimer.current = requestAnimationFrame(tick);
+      } else {
+        fadeTimer.current = null;
+        onDone?.();
+      }
+    };
+    fadeTimer.current = requestAnimationFrame(tick);
+  }
 
   const playQueue = useCallback((q: QueueItem[], start: number, lbl: string, shouldPlay = true) => {
     setQueue(q);
@@ -49,22 +79,34 @@ export default function MusicProvider() {
     if (!audio) return;
     const url = current?.url;
     if (!url) {
+      cancelFade();
+      appliedSrc.current = null;
       audio.pause();
+      audio.volume = 1;
       setPlaying(false);
       return;
     }
+    if (appliedSrc.current === url && !audio.paused) return;
+    appliedSrc.current = url;
+    cancelFade();
     audio.src = url;
+    audio.volume = 0;
     if (playing) {
-      audio.play().catch(() => setPlaying(false));
+      audio.play().then(() => fadeToVolume(audio, 1, 900)).catch(() => setPlaying(false));
     }
   }, [current?.url]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) audio.play().catch(() => setPlaying(false));
-    else audio.pause();
+    if (!audio || !current?.url) return;
+    if (playing) {
+      audio.play().then(() => fadeToVolume(audio, 1, 900)).catch(() => setPlaying(false));
+    } else {
+      fadeToVolume(audio, 0, 600, () => audio.pause());
+    }
   }, [playing]);
+
+  useEffect(() => () => cancelFade(), []);
 
   const applyAuto = useCallback(async (path: string) => {
     if (path.startsWith('/pages/')) {
@@ -82,9 +124,7 @@ export default function MusicProvider() {
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
     } else {
-      setQueue([]);
       setLabel(playlistLabel(key));
-      setIndex(0);
     }
   }, [playQueue, songs]);
 
