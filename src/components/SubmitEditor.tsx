@@ -114,6 +114,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [themeId, setThemeId] = useState('');
   const [themeList, setThemeList] = useState<{ id: string; name: string }[]>([]);
   const [songList, setSongList] = useState<{ id: string; title: string; url: string }[]>([]);
+  const [songSizes, setSongSizes] = useState<Record<string, number>>({});
   const [songId, setSongId] = useState('');
   const [songTitle, setSongTitle] = useState('');
   const [songUrl, setSongUrl] = useState('');
@@ -140,8 +141,20 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     supabase.from('themes').select('id, name').eq('status', 'approved').order('created_at', { ascending: true }).then(({ data }) => {
       setThemeList((data ?? []) as { id: string; name: string }[]);
     });
-    supabase.from('songs').select('id, title, url').order('sort_order', { ascending: true }).then(({ data }) => {
-      setSongList((data ?? []) as { id: string; title: string; url: string }[]);
+    supabase.from('songs').select('id, title, url').order('sort_order', { ascending: true }).then(async ({ data }) => {
+      const list = (data ?? []) as { id: string; title: string; url: string }[];
+      setSongList(list);
+      const sizes: Record<string, number> = {};
+      await Promise.all(list.map(async s => {
+        try {
+          const res = await fetch(s.url, { method: 'HEAD' });
+          const len = res.headers.get('content-length');
+          if (len) sizes[s.url] = Number(len);
+        } catch {
+          // 忽略无法探测的曲目
+        }
+      }));
+      setSongSizes(sizes);
     });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { id: data.user.id, display_name: data.user.user_metadata?.display_name } : null);
@@ -421,8 +434,16 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
               className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
             >
               <option value="">不设置配乐</option>
-              {songList.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+              {songList.map(s => {
+                const over = (songSizes[s.url] ?? 0) > 1024 * 1024;
+                return (
+                  <option key={s.id} value={s.id} disabled={over && s.id !== songId}>
+                    {s.title}{over ? '（超过 1MB，不可作文档配乐）' : ''}
+                  </option>
+                );
+              })}
             </select>
+            <p className="text-xs text-archive-muted mt-2 leading-relaxed">文档配乐上限 1MB；超限曲目已置灰不可选，但它们仍可在曲库正常播放。</p>
           </div>
 
           <div>

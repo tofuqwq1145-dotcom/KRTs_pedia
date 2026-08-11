@@ -27,7 +27,7 @@ export async function uploadMedia(
   return supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
 }
 
-const MAX_AUDIO_SIZE = 1 * 1024 * 1024;
+const MAX_AUDIO_SIZE = 30 * 1024 * 1024;
 
 export async function uploadAudio(
   supabase: SupabaseClient,
@@ -35,7 +35,7 @@ export async function uploadAudio(
   file: File,
 ): Promise<string> {
   if (file.size > MAX_AUDIO_SIZE) {
-    throw new Error('音频不能超过 1MB。');
+    throw new Error('音频不能超过 30MB。');
   }
   const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '');
   const ts = Date.now();

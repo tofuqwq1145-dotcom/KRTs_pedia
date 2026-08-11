@@ -107,7 +107,7 @@ export default async function AdminPage() {
           <Stat label="分级系列" value={seriesCount ?? 0} />
         </div>
         <div className="mt-6 border border-archive-border bg-archive-paper p-5 text-xs tracking-widest text-archive-muted leading-6">
-          <p className="mb-1">· 上传限制：图片 ≤ 5MB，音频 ≤ 1MB（后台已强制校验）。</p>
+          <p className="mb-1">· 上传限制：图片 ≤ 5MB，曲库音频 ≤ 30MB，文档配乐 ≤ 1MB（选歌时已置灰超限曲目）。</p>
           <p className="mb-1">
             · 实时「月度流量 / 总存储」以 Supabase 官方看板为准：{' '}
             <a href="https://supabase.com/dashboard/project/ynqecbsychdgjtrlvegd/billing/usage" target="_blank" rel="noreferrer" className="underline text-archive-accent">项目用量看板</a>
