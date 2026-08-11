@@ -223,7 +223,6 @@ export default function MusicProvider() {
   const [celebrate, setCelebrate] = useState<{ title: string; text: string } | null>(null);
   const prevPetiaCountRef = useRef<number | null>(null);
   const armedRef = useRef(false);
-  const celebrateTimer = useRef<number | null>(null);
 
   async function fetchCelebration(songTitle: string): Promise<string> {
     try {
@@ -260,10 +259,8 @@ export default function MusicProvider() {
         setLoopOne(false);
         playQueue([{ title: song.title, artist: song.artist, url: song.url }], 0, playlistLabel(song.playlist), true);
         startedRef.current = true;
-        if (celebrateTimer.current !== null) window.clearTimeout(celebrateTimer.current);
         setCelebrate({ title: song.title, text: '……' });
         fetchCelebration(song.title).then(text => setCelebrate({ title: song.title, text }));
-        celebrateTimer.current = window.setTimeout(() => setCelebrate(null), 12000);
       }
     }
     prevPetiaCountRef.current = petiaCount;
@@ -278,7 +275,6 @@ export default function MusicProvider() {
 
   useEffect(() => () => {
     if (lockMsgTimer.current !== null) window.clearTimeout(lockMsgTimer.current);
-    if (celebrateTimer.current !== null) window.clearTimeout(celebrateTimer.current);
   }, []);
 
   useEffect(() => {
@@ -652,20 +648,26 @@ export default function MusicProvider() {
   return (
     <>
       {celebrate && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 backdrop-blur-sm px-4">
-          <div className="krt-panel relative w-full max-w-md rounded-2xl text-[#efe6d5] px-8 py-10 text-center">
-            <span className="krt-corner top-1.5 left-1.5 border-t border-l rounded-tl" />
-            <span className="krt-corner top-1.5 right-1.5 border-t border-r rounded-tr" />
-            <span className="krt-corner bottom-1.5 left-1.5 border-b border-l rounded-bl" />
-            <span className="krt-corner bottom-1.5 right-1.5 border-b border-r rounded-br" />
-            <div className="mx-auto w-fit rounded-full shadow-[0_0_40px_rgba(127,184,228,0.5)]">
-              <SiteMascot mood="chat" active size={88} />
+        <div className="fixed inset-0 z-[90] overflow-hidden bg-[#05080e] text-[#efe6d5]">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(127,184,228,0.22),transparent_62%)]" />
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(127,184,228,0.04)_2px,rgba(127,184,228,0.04)_3px)]" />
+          <span className="absolute top-5 left-5 w-16 h-16 border-t-2 border-l-2 border-[#7FB8E4]/60" />
+          <span className="absolute top-5 right-5 w-16 h-16 border-t-2 border-r-2 border-[#7FB8E4]/60" />
+          <span className="absolute bottom-5 left-5 w-16 h-16 border-b-2 border-l-2 border-[#7FB8E4]/60" />
+          <span className="absolute bottom-5 right-5 w-16 h-16 border-b-2 border-r-2 border-[#7FB8E4]/60" />
+          <span className="absolute top-1/2 left-6 w-px h-24 bg-gradient-to-b from-transparent via-[#7FB8E4]/40 to-transparent" />
+          <span className="absolute top-1/2 right-6 w-px h-24 bg-gradient-to-b from-transparent via-[#7FB8E4]/40 to-transparent" />
+
+          <div className="relative h-full w-full flex flex-col items-center justify-center text-center px-6">
+            <div className="rounded-full shadow-[0_0_80px_rgba(127,184,228,0.55)]">
+              <SiteMascot mood="chat" active size={150} />
             </div>
-            <p className="mt-5 font-mono text-[10px] tracking-[0.3em] text-[#7FB8E4]">ACHIEVEMENT UNLOCKED</p>
-            <p className="mt-2 font-serif text-2xl text-[#f3ead8]">「{celebrate.title}」</p>
-            <p className="mt-4 text-sm text-[#bcdcf5] leading-relaxed min-h-[3.5rem]">{celebrate.text}</p>
-            <button onClick={() => setCelebrate(null)} className="mt-7 px-8 py-2.5 bg-[#7FB8E4] text-[#0c1521] text-xs font-mono tracking-[0.2em] rounded hover:bg-[#9ecfe9] transition-colors">
-              太棒了
+            <p className="mt-7 font-mono text-xs tracking-[0.5em] text-[#7FB8E4]">— ACHIEVEMENT UNLOCKED —</p>
+            <p className="mt-4 font-serif text-4xl text-[#f3ead8]">「{celebrate.title}」</p>
+            <p className="mt-6 max-w-2xl text-base text-[#bcdcf5] leading-loose">{celebrate.text}</p>
+            <button onClick={() => setCelebrate(null)}
+              className="mt-10 px-10 py-3 bg-[#7FB8E4] text-[#0c1521] text-sm font-mono tracking-[0.25em] rounded hover:bg-[#9ecfe9] transition-colors">
+              继续
             </button>
           </div>
         </div>
