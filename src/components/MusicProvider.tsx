@@ -75,9 +75,12 @@ export default function MusicProvider() {
   const [browseKey, setBrowseKey] = useState<string | null>(null);
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
+  const [online, setOnline] = useState<number | null>(null);
+  const [caption, setCaption] = useState<{ title: string; artist: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fadeTimer = useRef<number | null>(null);
   const appliedSrc = useRef<string | null>(null);
+  const captionTimer = useRef<number | null>(null);
 
   const current = queue[index];
 
@@ -179,6 +182,40 @@ export default function MusicProvider() {
       window.localStorage.setItem('krt-sci-panel', collapsed ? '1' : '0');
     } catch { /* 忽略写入失败 */ }
   }, [collapsed]);
+
+  useEffect(() => {
+    let stop = false;
+    async function tick() {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { count } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+        if (!stop && count !== null) setOnline(count);
+      } catch { /* last_seen 未创建或不可读时忽略 */ }
+    }
+    tick();
+    const iv = setInterval(tick, 30000);
+    return () => { stop = true; clearInterval(iv); };
+  }, []);
+
+  useEffect(() => {
+    if (!current?.url || !playing) {
+      setCaption(null);
+      return;
+    }
+    setCaption({ title: current.title, artist: current.artist || '' });
+    if (captionTimer.current !== null) window.clearTimeout(captionTimer.current);
+    captionTimer.current = window.setTimeout(() => setCaption(null), 3000);
+    return () => {
+      if (captionTimer.current !== null) {
+        window.clearTimeout(captionTimer.current);
+        captionTimer.current = null;
+      }
+    };
+  }, [current?.url, playing]);
 
   useEffect(() => () => cancelFade(), []);
 
@@ -350,6 +387,14 @@ export default function MusicProvider() {
   return (
     <>
       <audio ref={audioRef} onEnded={onEnded} playsInline preload="auto" />
+      {caption && (
+        <div className="krt-toast">
+          <div>
+            <p className="font-serif text-sm text-[#f3ead8] truncate text-center">{caption.title}</p>
+            {caption.artist && <p className="mt-0.5 text-[10px] text-[#9a8f7a] tracking-wider text-center">{caption.artist}</p>}
+          </div>
+        </div>
+      )}
       {collapsed ? (
         <button
           onClick={() => setCollapsed(false)}
@@ -379,6 +424,16 @@ export default function MusicProvider() {
               <button onClick={() => setCollapsed(true)} className="text-sm text-[#9a8f7a] hover:text-white transition-colors" title="收起">▁</button>
             </div>
           </div>
+
+          {online !== null && (
+            <div className="px-4 pt-2 flex items-center gap-2 font-mono text-[9px] tracking-[0.22em] text-[#7FB8E4]/85">
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+                <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-400" />
+              </span>
+              ONLINE {online}
+            </div>
+          )}
 
           <div className="relative px-4 pt-3 pb-1">
             <button onClick={toggle} disabled={!current} className="relative mx-auto block disabled:opacity-40 hover:scale-105 transition-transform" title="点击播放 / 暂停">
@@ -436,7 +491,8 @@ export default function MusicProvider() {
               <div className="border-t border-[#7FB8E4]/20 max-h-72 overflow-y-auto px-4 py-3 space-y-5">
                 {WRITE_EXAMPLES.map(ex => (
                   <div key={ex.title}>
-                    <p className="mb-2 font-mono text-[9px] tracking-[0.22em] text-[#7FB8E4]/80">{ex.title}</p>
+                    <p className="mb-1.5 font-mono text-[9px] tracking-[0.22em] text-[#7FB8E4]/80">{ex.title}</p>
+                    <pre className="mb-3 text-[10px] leading-relaxed whitespace-pre-wrap break-words bg-black/30 border border-[#7FB8E4]/20 px-3 py-2 rounded-sm text-[#bcdcf5] font-mono">{ex.md}</pre>
                     <div className="krt-md"><Markdown content={ex.md} /></div>
                   </div>
                 ))}
