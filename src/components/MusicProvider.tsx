@@ -94,6 +94,7 @@ export default function MusicProvider() {
   const [dlTotalBytes, setDlTotalBytes] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [petiaCount, setPetiaCount] = useState(0);
+  const [countReady, setCountReady] = useState(false);
   const [lockMsg, setLockMsg] = useState('');
   const lockMsgTimer = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -197,6 +198,7 @@ export default function MusicProvider() {
       setUserId(user?.id ?? null);
       if (!user) {
         setPetiaCount(0);
+        setCountReady(true);
         return;
       }
       const { count } = await supabase
@@ -204,7 +206,10 @@ export default function MusicProvider() {
         .select('id', { count: 'exact', head: true })
         .eq('author_name', 'SCI-Petia')
         .eq('user_id', user.id);
-      if (!cancelled) setPetiaCount(count ?? 0);
+      if (!cancelled) {
+        setPetiaCount(count ?? 0);
+        setCountReady(true);
+      }
     }
     refresh();
     iv = window.setInterval(refresh, 25000);
@@ -222,7 +227,7 @@ export default function MusicProvider() {
 
   const [celebrate, setCelebrate] = useState<{ title: string; text: string } | null>(null);
   const prevPetiaCountRef = useRef<number | null>(null);
-  const armedRef = useRef(false);
+  const armedIdRef = useRef<string | null>(null);
 
   async function fetchCelebration(songTitle: string): Promise<string> {
     try {
@@ -239,14 +244,13 @@ export default function MusicProvider() {
   }
 
   useEffect(() => {
-    if (!armedRef.current) {
-      if (songs.length > 0) {
-        armedRef.current = true;
-        prevPetiaCountRef.current = petiaCount;
-      }
+    if (songs.length === 0 || !countReady) return;
+    const prev = prevPetiaCountRef.current ?? petiaCount;
+    if (armedIdRef.current !== userId) {
+      armedIdRef.current = userId;
+      prevPetiaCountRef.current = petiaCount;
       return;
     }
-    const prev = prevPetiaCountRef.current ?? petiaCount;
     if (petiaCount > prev) {
       const song = songs.find(s =>
         s.unlock_type === 'petia_chats' &&
@@ -264,7 +268,7 @@ export default function MusicProvider() {
       }
     }
     prevPetiaCountRef.current = petiaCount;
-  }, [petiaCount, songs, playQueue]);
+  }, [petiaCount, songs, countReady, userId, playQueue]);
 
   function showLockHint(s: Song) {
     const goal = s.unlock_goal || 0;
