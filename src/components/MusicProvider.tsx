@@ -78,6 +78,7 @@ export default function MusicProvider() {
   const [locked, setLocked] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [loopOne, setLoopOne] = useState(false);
+  const playMode: 'seq' | 'shuffle' | 'one' = loopOne ? 'one' : shuffle ? 'shuffle' : 'seq';
   const [showTracks, setShowTracks] = useState(false);
   const [showWrite, setShowWrite] = useState(false);
   const [browseTab, setBrowseTab] = useState<'pl' | 'q'>('pl');
@@ -151,6 +152,45 @@ export default function MusicProvider() {
     if (objUrlRef.current) { URL.revokeObjectURL(objUrlRef.current); objUrlRef.current = null; }
     if (cached) objUrlRef.current = cached;
     setSrcUrl(cached ?? url);
+  }, []);
+
+  const unlockRef = useRef<EventListener | null>(null);
+  const tryPlay = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !current?.url) return;
+    audio.volume = 1;
+    audio.play().then(() => {
+      if (unlockRef.current) {
+        window.removeEventListener('pointerdown', unlockRef.current);
+        window.removeEventListener('touchstart', unlockRef.current);
+        window.removeEventListener('keydown', unlockRef.current);
+        unlockRef.current = null;
+      }
+      fadeToVolume(audio, 1, 300);
+    }).catch(() => {
+      setPlaying(false);
+      if (!unlockRef.current) {
+        const unlock: EventListener = () => {
+          window.removeEventListener('pointerdown', unlock);
+          window.removeEventListener('touchstart', unlock);
+          window.removeEventListener('keydown', unlock);
+          if (unlockRef.current === unlock) unlockRef.current = null;
+          audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => {});
+        };
+        unlockRef.current = unlock;
+        window.addEventListener('pointerdown', unlock);
+        window.addEventListener('touchstart', unlock);
+        window.addEventListener('keydown', unlock);
+      }
+    });
+  }, [current?.url]);
+
+  useEffect(() => () => {
+    if (unlockRef.current) {
+      window.removeEventListener('pointerdown', unlockRef.current);
+      window.removeEventListener('touchstart', unlockRef.current);
+      window.removeEventListener('keydown', unlockRef.current);
+    }
   }, []);
 
   const doDownload = useCallback(async (url: string) => {
@@ -332,10 +372,8 @@ export default function MusicProvider() {
     cancelFade();
     audio.src = url;
     audio.volume = 0.6;
-    if (playing) {
-      audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
-    }
-  }, [srcUrl]);
+    if (playing) tryPlay();
+  }, [srcUrl, tryPlay]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -435,11 +473,11 @@ export default function MusicProvider() {
     const audio = audioRef.current;
     if (!audio || !current?.url) return;
     if (playing) {
-      audio.play().then(() => fadeToVolume(audio, 1, 300)).catch(() => setPlaying(false));
+      tryPlay();
     } else {
       fadeToVolume(audio, 0, 300, () => audio.pause());
     }
-  }, [playing]);
+  }, [playing, tryPlay]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -505,7 +543,7 @@ export default function MusicProvider() {
       if (data?.song_url) {
         setLoopOne(true);
         setShuffle(false);
-        playQueue([{ title: data.song_title || '文档配乐', artist: '', url: data.song_url }], 0, '本文档配乐', startedRef.current);
+        playQueue([{ title: data.song_title || '文档配乐', artist: '', url: data.song_url }], 0, '本文档配乐', true);
         return;
       }
       const key = TYPE_PLAYLIST[data?.type ?? ''] ?? playlistForPath(path);
@@ -514,7 +552,7 @@ export default function MusicProvider() {
         const q = shuffled(list);
         setLoopOne(false);
         setShuffle(true);
-        playQueue(q, Math.floor(Math.random() * q.length), playlistLabel(key), startedRef.current);
+        playQueue(q, Math.floor(Math.random() * q.length), playlistLabel(key), true);
       } else {
         setLoopOne(false);
         setShuffle(false);
@@ -527,7 +565,7 @@ export default function MusicProvider() {
     const key = playlistForPath(path);
     const list = unlockedSongs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
-      playQueue(list, 0, playlistLabel(key), startedRef.current);
+      playQueue(list, 0, playlistLabel(key), true);
     } else {
       setLabel(playlistLabel(key));
     }
@@ -566,8 +604,6 @@ export default function MusicProvider() {
     const i = unlocked.findIndex(s => s.url === url);
     if (i < 0) return;
     setLocked(true);
-    setShuffle(false);
-    setLoopOne(false);
     const list = unlocked.map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     playQueue(list, i, playlistLabel(key));
     startedRef.current = true;
@@ -576,8 +612,6 @@ export default function MusicProvider() {
 
   function manualPick(key: string) {
     setLocked(true);
-    setShuffle(false);
-    setLoopOne(false);
     const list = unlockedSongs.filter(s => s.playlist === key).map(s => ({ title: s.title, artist: s.artist, url: s.url }));
     if (list.length > 0) {
       playQueue(list, 0, playlistLabel(key));
@@ -594,12 +628,16 @@ export default function MusicProvider() {
   function playQueueAt(i: number) {
     if (!queue[i]) return;
     setLocked(true);
-    setShuffle(false);
-    setLoopOne(false);
     setIndex(i);
     setPlaying(true);
     startedRef.current = true;
     playNow();
+  }
+
+  function chooseMode(m: 'seq' | 'shuffle' | 'one') {
+    setLocked(true);
+    setShuffle(m === 'shuffle');
+    setLoopOne(m === 'one');
   }
 
   function release() {
@@ -844,6 +882,15 @@ export default function MusicProvider() {
                 {playing ? '❚❚' : '▶'}
               </button>
               <button onClick={() => step(1)} disabled={!current} className="w-8 h-8 rounded-full border border-white/10 text-[#cec2a9] disabled:opacity-25 hover:text-[#7FB8E4] hover:border-[#7FB8E4]/50 hover:shadow-[0_0_10px_rgba(127,184,228,0.35)] transition-all text-sm" title="下一首">⏭</button>
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 pb-1">
+              {(['seq', 'shuffle', 'one'] as const).map(m => (
+                <button key={m} onClick={() => chooseMode(m)}
+                  className={`px-2.5 py-1 rounded text-[9px] font-mono tracking-[0.15em] transition-colors ${playMode === m ? 'bg-[#7FB8E4]/20 text-[#7FB8E4] border border-[#7FB8E4]/40' : 'text-[#8a8069] border border-white/10 hover:text-[#d6cbb4]'}`}>
+                  {m === 'seq' ? '顺序' : m === 'shuffle' ? '随机' : '单曲'}
+                </button>
+              ))}
             </div>
           </div>
 
