@@ -18,6 +18,18 @@ function pick(arr: string[], v: string | undefined, fallback: string): string {
   return arr.includes(v as string) ? (v as string) : fallback;
 }
 
+function parseArgs(raw: string | undefined): Record<string, unknown> {
+  let s = (raw || '').trim();
+  s = s.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  try { return JSON.parse(s) as Record<string, unknown>; } catch { /* 继续尝试截取 */ }
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(s.slice(start, end + 1)) as Record<string, unknown>; } catch { /* 解析失败 */ }
+  }
+  return {};
+}
+
 const RECORD_TOOL = {
   type: 'function',
   function: {
@@ -66,33 +78,6 @@ const THEME_TOOL = {
     },
   },
 } as const;
-
-interface RecordArgs {
-  title?: string;
-  slug?: string;
-  type?: string;
-  body?: string;
-  theme_id?: string | null;
-  series_id?: string | null;
-}
-
-interface ThemeArgs {
-  name?: string;
-  slug?: string;
-  slogan?: string;
-  style?: string;
-  accent?: string;
-  accent_soft?: string;
-  bg?: string;
-  title_color?: string;
-  body_color?: string;
-  header_from?: string;
-  header_to?: string;
-  title_font?: string;
-  body_font?: string;
-  header_style?: string;
-  header_animation?: string;
-}
 
 export async function POST() {
   const supabase = createClient();
@@ -176,51 +161,63 @@ export async function POST() {
       `- 系列 ${seriesCount ?? 0} 个，聊天室共 ${chatCount ?? 0} 条消息`;
 
     try {
-      const res = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'deepseek-v4-flash',
-          temperature: 0.9,
-          max_tokens: 500,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...(context ? [{ role: 'user', content: `最近聊天记录（含你之前的回复，用 SCI-Petia 开头）如下：\n${context}` }] : []),
-            { role: 'user', content: latest.content },
-            { role: 'user', content: `当前档案库真实快照（涉及本站数据的回答只能引用这些真实数字与标题，绝对不要编造不存在的馆藏、文献、纸张、战地记录等细节）：\n${snapshot}` },
-            { role: 'user', content: `若你要调用 record_entry，可选的已过审版式(id)：${themeOpts}；可选的系列(id)：${seriesOpts}。theme_id 和 series_id 都可以为 null。` },
-            { role: 'user', content: `若用户想设计/提交新版式，调用 submit_theme，只需填 name/slug 及想要的配色字体等文字参数，不需要图片。` },
-          ],
-          tools: [RECORD_TOOL, THEME_TOOL],
-        }),
-      });
+      const baseMessages: any[] = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...(context ? [{ role: 'user' as const, content: `最近聊天记录（含你之前的回复，用 SCI-Petia 开头）如下：\n${context}` }] : []),
+        { role: 'user', content: latest.content },
+        { role: 'user', content: `当前档案库真实快照（涉及本站数据的回答只能引用这些真实数字与标题，绝对不要编造不存在的馆藏、文献、纸张、战地记录等细节）：\n${snapshot}` },
+        { role: 'user', content: `若你要调用 record_entry，可选的已过审版式(id)：${themeOpts}；可选的系列(id)：${seriesOpts}。theme_id 和 series_id 都可以为 null。` },
+        { role: 'user', content: `若用户想设计/提交新版式，调用 submit_theme，只需填 name/slug 及想要的配色字体等文字参数，不需要图片。` },
+      ];
 
-      if (!res.ok) {
-        const bodyText = await res.text().catch(() => '');
-        console.error('[petia-bot] deepseek http', res.status, bodyText.slice(0, 500));
-        throw new Error(`DeepSeek ${res.status}`);
-      }
-      const data = await res.json();
-      const message = data?.choices?.[0]?.message;
-      let replyText = typeof message?.content === 'string' ? message.content : '';
-      const calls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
-      console.log('[petia-bot] reply len', replyText.length, '| tool_calls', calls.length, '| tools', calls.map((c: any) => c?.function?.name).join(',') || 'none');
-      const recordCall = calls.find((c: any) => c?.function?.name === 'record_entry');
-      if (recordCall) {
-        let args: RecordArgs = {};
-        try {
-          args = JSON.parse(recordCall.function.arguments || '{}');
-        } catch { /* 参数解析失败则忽略 */ }
+      let replyText = '';
+      let retries = 0;
 
-        const title = (args.title ?? '').trim();
-        const slug = normalizeSlug(args.slug);
-        const type = ALLOWED_TYPES.includes(args.type as PageType) ? (args.type as PageType) : 'article';
-        const body = (args.body ?? '').trim();
+      for (;;) {
+        const res = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'deepseek-v4-flash',
+            temperature: 0.9,
+            max_tokens: 500,
+            messages: baseMessages,
+            tools: [RECORD_TOOL, THEME_TOOL],
+          }),
+        });
 
-        if (title && slug && body) {
+        if (!res.ok) {
+          const bodyText = await res.text().catch(() => '');
+          console.error('[petia-bot] deepseek http', res.status, bodyText.slice(0, 500));
+          throw new Error(`DeepSeek ${res.status}`);
+        }
+        const data = await res.json();
+        const message = data?.choices?.[0]?.message;
+        const text = typeof message?.content === 'string' ? message.content : '';
+        const calls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
+        console.log('[petia-bot] reply len', text.length, '| tool_calls', calls.length, '| tools', calls.map((c: any) => c?.function?.name).join(',') || 'none');
+
+        const recordCall = calls.find((c: any) => c?.function?.name === 'record_entry');
+        const themeCall = calls.find((c: any) => c?.function?.name === 'submit_theme');
+
+        if (recordCall) {
+          const args = parseArgs(recordCall.function?.arguments);
+          const title = ((args.title as string) ?? '').trim();
+          const slug = normalizeSlug(args.slug as string);
+          const type = ALLOWED_TYPES.includes(args.type as PageType) ? (args.type as PageType) : 'article';
+          const body = ((args.body as string) ?? '').trim();
+
+          if (!(title && slug && body)) {
+            if (retries >= 1) { replyText = text || '这个好像没整理好，关键词缺了……要不你再说一遍，我重新记？'; break; }
+            baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
+            baseMessages.push({ role: 'tool', tool_call_id: recordCall.id, content: '缺少必填参数：title（标题）、body（正文）、slug（英文小写连字符标识）。请补全后重新调用 record_entry。' });
+            retries++;
+            continue;
+          }
+
           const themeId = (themeRows ?? []).some(t => t.id === args.theme_id) ? args.theme_id : null;
           const seriesId = (seriesRows ?? []).some(s => s.id === args.series_id) ? args.series_id : null;
 
@@ -248,39 +245,41 @@ export async function POST() {
           });
 
           if (!insertError) {
-            replyText = `${replyText ? `${replyText} ` : ''}已记入档案，等待站长审核。`;
+            replyText = `${text} 已记入档案，等待站长审核。`;
           } else if (insertError.code === '23505') {
-            replyText = `${replyText ? `${replyText} ` : ''}这个条目标识好像已存在了……我需要换个方式记录它。`;
+            replyText = `${text} 这个条目标识好像已存在了……我需要换个方式记录它。`;
           } else {
-            replyText = `${replyText ? `${replyText} ` : ''}啊，档案写入出了一点小故障，稍后再试。`;
+            replyText = `${text} 啊，档案写入出了一点小故障，稍后再试。`;
           }
+          break;
         }
-      }
 
-      const themeCall = calls.find((c: any) => c?.function?.name === 'submit_theme');
-      if (themeCall) {
-        let args: ThemeArgs = {};
-        try {
-          args = JSON.parse(themeCall.function.arguments || '{}');
-        } catch { /* 参数解析失败则忽略 */ }
+        if (themeCall) {
+          const args = parseArgs(themeCall.function?.arguments);
+          const name = ((args.name as string) ?? '').trim();
+          const slug = normalizeSlug(args.slug as string);
+          const slogan = ((args.slogan as string) ?? '').trim();
+          const titleFont = pick(FONT_KEYS, args.title_font as string, '');
+          const bodyFont = pick(FONT_KEYS, args.body_font as string, '');
+          const headerStyle = pick(HEADER_STYLES, args.header_style as string, 'none');
+          const animation = pick(ANIMATIONS, args.header_animation as string, 'none');
 
-        const name = (args.name ?? '').trim();
-        const slug = normalizeSlug(args.slug);
-        const slogan = (args.slogan ?? '').trim();
-        const titleFont = pick(FONT_KEYS, args.title_font, '');
-        const bodyFont = pick(FONT_KEYS, args.body_font, '');
-        const headerStyle = pick(HEADER_STYLES, args.header_style, 'none');
-        const animation = pick(ANIMATIONS, args.header_animation, 'none');
+          if (!name) {
+            if (retries >= 1) { replyText = text || '啊，版式参数好像没整理全……再说一遍设计想法我重新记？'; break; }
+            baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
+            baseMessages.push({ role: 'tool', tool_call_id: themeCall.id, content: '缺少必填参数 name（版式名称）。请补全 name，slug 用英文小写连字符（可基于 name 生成），重新调用 submit_theme。' });
+            retries++;
+            continue;
+          }
 
-        if (name && slug) {
           const colors = {
-            accent: args.accent || '#8a5a2b',
-            accent_soft: args.accent_soft || '#a58050',
-            bg: args.bg || '#f7f3ec',
-            title_color: args.title_color || '',
-            body_color: args.body_color || '',
-            header_from: args.header_from || '#1a1a1a',
-            header_to: args.header_to || '#3a3a3a',
+            accent: (args.accent as string) || '#8a5a2b',
+            accent_soft: (args.accent_soft as string) || '#a58050',
+            bg: (args.bg as string) || '#f7f3ec',
+            title_color: (args.title_color as string) || '',
+            body_color: (args.body_color as string) || '',
+            header_from: (args.header_from as string) || '#1a1a1a',
+            header_to: (args.header_to as string) || '#3a3a3a',
           };
           const validColors = Object.values(colors).every(v => isColor(v || undefined));
 
@@ -292,7 +291,7 @@ export async function POST() {
                 accent: colors.accent,
                 accent_soft: colors.accent_soft,
                 bg: colors.bg,
-                style: pick(THEME_STYLES, args.style, 'modern'),
+                style: pick(THEME_STYLES, args.style as string, 'modern'),
                 title_color: colors.title_color || null,
                 body_color: colors.body_color || null,
                 title_font: titleFont || null,
@@ -309,19 +308,17 @@ export async function POST() {
             : { error: { code: '400', message: '颜色格式不合法' } };
 
           if (!insertRes.error) {
-            replyText = `${replyText ? `${replyText} ` : ''}版式已提交，等待站长审核。`;
+            replyText = `${text} 版式已提交，等待站长审核。`;
           } else if (insertRes.error.code === '23505') {
-            replyText = `${replyText ? `${replyText} ` : ''}这个版式标识好像已存在了……换个 slug 试试。`;
+            replyText = `${text} 这个版式标识好像已存在了……换个 slug 试试。`;
           } else {
-            replyText = `${replyText ? `${replyText} ` : ''}啊，版式写入出了一点小故障，稍后再试。`;
+            replyText = `${text} 啊，版式写入出了一点小故障，稍后再试。`;
           }
-        } else if (!replyText.trim()) {
-          replyText = '啊，版式参数好像没整理全……再说一遍设计想法我重新记？';
+          break;
         }
-      }
 
-      if (!replyText.trim() && recordCall) {
-        replyText = '这个好像没整理好，关键词缺了……要不你再说一遍，我重新记？';
+        replyText = text;
+        break;
       }
 
       if (replyText.trim()) {
