@@ -36,3 +36,4 @@ next-env.d.ts
 # qq-bot（独立长驻服务）
 /qq-bot/.env
 /qq-bot/node_modules/
+/qq-bot/logs/
