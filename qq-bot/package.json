@@ -1,0 +1,23 @@
+{
+  "name": "krtpedia-qq-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "KRTPedia 站娘（SCI-Petia）QQ 官方机器人：同一人设 + 档案库查询 + 代录词条",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/ws": "^8.5.12",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

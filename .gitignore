@@ -32,3 +32,7 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# qq-bot（独立长驻服务）
+/qq-bot/.env
+/qq-bot/node_modules/
