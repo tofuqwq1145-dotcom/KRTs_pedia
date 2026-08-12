@@ -57,7 +57,7 @@ export default async function AdminPage() {
 
   const { data: userRows } = await supabase
     .from('profiles')
-    .select('id, display_name, title, is_admin, created_at, last_seen')
+    .select('id, display_name, title, is_admin, banned, created_at, last_seen')
     .order('created_at', { ascending: true });
 
   let heroUrl = '';
@@ -189,9 +189,11 @@ export default async function AdminPage() {
         <SeriesManager />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+      <div className="mb-14">
         <HeroBackground initialUrl={heroUrl} />
+      </div>
 
+      <div className="mb-14">
         <UserManager users={(userRows ?? []) as AdminUser[]} />
       </div>
     </div>

@@ -23,6 +23,7 @@ alter table public.profiles add column if not exists nation text default '';
 alter table public.profiles add column if not exists organization text default '';
 alter table public.profiles add column if not exists wechat text default '';
 alter table public.profiles add column if not exists qq text default '';
+alter table public.profiles add column if not exists banned boolean not null default false;
 
 alter table public.profiles enable row level security;
 
@@ -47,6 +48,20 @@ $$;
 
 revoke execute on function public.is_admin_ss() from public;
 grant execute on function public.is_admin_ss() to authenticated;
+
+-- 封禁判断助手（security definer 绕过 RLS）
+create or replace function public.is_banned()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.profiles p where p.id = auth.uid() and p.banned);
+$$;
+
+revoke execute on function public.is_banned() from public;
+grant execute on function public.is_banned() to authenticated;
 
 -- 站主可更新任意用户资料（管理端称号授予等）
 drop policy if exists "admin_update_any_profile" on public.profiles;
@@ -167,7 +182,7 @@ create policy "themes_read_public" on public.themes
 -- 登录用户可提交新版式（待审核）
 drop policy if exists "themes_insert_user" on public.themes;
 create policy "themes_insert_user" on public.themes
-  for insert with check (auth.uid() = author_id and status = 'pending');
+  for insert with check (auth.uid() = author_id and status = 'pending' and not public.is_banned());
 
 -- 作者可修改自己待审/被驳回的版式；站主可修改任意
 drop policy if exists "themes_update_own" on public.themes;
@@ -200,7 +215,7 @@ alter table public.chat_messages enable row level security;
 
 create policy "chat_messages_read_public" on public.chat_messages for select using (true);
 create policy "chat_messages_insert_own" on public.chat_messages
-  for insert with check (auth.uid() = user_id and char_length(content) between 1 and 1000);
+  for insert with check (auth.uid() = user_id and char_length(content) between 1 and 1000 and not public.is_banned());
 
 -- Realtime 发布（若已在发布中会报错，可忽略）
 alter publication supabase_realtime add table public.chat_messages;
@@ -223,7 +238,7 @@ create policy "ratings_read_public" on public.ratings for select using (true);
 
 drop policy if exists "ratings_insert_own" on public.ratings;
 create policy "ratings_insert_own" on public.ratings
-  for insert with check (auth.uid() = user_id and value between 1 and 5);
+  for insert with check (auth.uid() = user_id and value between 1 and 5 and not public.is_banned());
 
 drop policy if exists "ratings_update_own" on public.ratings;
 create policy "ratings_update_own" on public.ratings
@@ -253,7 +268,7 @@ create policy "comments_read_public" on public.comments for select using (true);
 
 drop policy if exists "comments_insert_own" on public.comments;
 create policy "comments_insert_own" on public.comments
-  for insert with check (auth.uid() = user_id and char_length(body) between 1 and 2000);
+  for insert with check (auth.uid() = user_id and char_length(body) between 1 and 2000 and not public.is_banned());
 
 drop policy if exists "comments_delete_own" on public.comments;
 create policy "comments_delete_own" on public.comments
@@ -388,7 +403,7 @@ create policy "pages_read_admin" on public.pages
 -- 登录用户创建自己的条目（初始为 pending）
 drop policy if exists "pages_insert_own" on public.pages;
 create policy "pages_insert_own" on public.pages
-  for insert with check (auth.uid() = author_id);
+  for insert with check (auth.uid() = author_id and not public.is_banned());
 
 -- 作者可修改自己的条目（含已通过的，改后需重新审核）
 drop policy if exists "pages_update_own" on public.pages;

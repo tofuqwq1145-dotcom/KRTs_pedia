@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import MusicProvider from '@/components/MusicProvider';
 import PresencePulse from '@/components/PresencePulse';
+import BanGuard from '@/components/BanGuard';
 import type { Metadata } from 'next';   // ← 新增这行
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="min-h-screen">{children}</main>
         <MusicProvider />
         <PresencePulse />
+        <BanGuard />
         <div className="site-scan" aria-hidden="true" />
 
         <footer className="border-t border-archive-border mt-24 py-12 bg-archive-paper">
