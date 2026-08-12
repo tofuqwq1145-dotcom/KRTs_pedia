@@ -193,7 +193,10 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
     try {
       const supabase = createClient();
       const url = await uploadMedia(supabase, 'posts', user.id, file);
-      const md = `![图片](${url})`;
+      const caption = (window.prompt('图片描述（显示在图片下方，可留空）', '') || '').trim();
+      const md = caption
+        ? `![图片>](${url} "${caption}")`
+        : `![图片>](${url})`;
       const ta = textareaRef.current;
       if (ta) {
         const start = ta.selectionStart ?? body.length;
@@ -488,7 +491,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
             placeholder={TEMPLATES.default}
             className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm leading-relaxed font-mono"
           />
-          <p className="text-xs text-archive-muted mt-2 leading-relaxed">支持 Markdown：标题、加粗、引用、列表、表格、代码块、[链接](url)、![图片](url)。用「+ 可折叠列表」可插入点击展开的清单。内容需经站主审核后公开。</p>
+          <p className="text-xs text-archive-muted mt-2 leading-relaxed">支持 Markdown：标题、加粗、引用、列表、表格、代码块、[链接](url)、![图片](url)。用「+ 可折叠列表」可插入点击展开的清单。上传的图片会自动靠右悬挂在文字行内；图片描述会显示在图片下方。内容需经站主审核后公开。</p>
           {uploadError && <p className="text-sm text-archive-accent mt-2">{uploadError}</p>}
         </div>
 

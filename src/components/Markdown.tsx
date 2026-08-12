@@ -30,6 +30,21 @@ function Md({ content }: MdProps) {
         td: ({ children }) => <td className="border border-archive-border px-4 py-2">{children}</td>,
         hr: () => <hr className="my-8 border-archive-border" />,
         strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+        img: ({ src, alt, title }) => {
+          const floated = (alt ?? '').endsWith('>');
+          const cleanAlt = (alt ?? '').replace(/>\s*$/, '').trim();
+          if (floated || title) {
+            return (
+              <figure className="float-right ml-6 mb-5 max-w-[46%] text-center">
+                <img src={src ?? ''} alt={cleanAlt} loading="lazy" className="w-full h-auto border border-archive-border bg-archive-paper/60" />
+                {title && <figcaption className="mt-1.5 text-xs text-archive-muted tracking-widest">{title}</figcaption>}
+              </figure>
+            );
+          }
+          return (
+            <img src={src ?? ''} alt={cleanAlt} loading="lazy" className="max-w-full h-auto my-6 border border-archive-border bg-archive-paper/60" />
+          );
+        },
       }}
     >
       {content}
