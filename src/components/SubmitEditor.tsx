@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { supabaseConfigured } from '@/lib/supabase/client';
 import { uploadMedia, uploadAudio } from '@/lib/supabase/upload';
-import Markdown from '@/components/Markdown';
+import PageDoc from '@/components/PageDoc';
+import type { Theme } from '@/data/types';
 
 const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'nation', label: '国家' },
@@ -108,11 +109,11 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const [type, setType] = useState('article');
   const [body, setBody] = useState('');
   const [seriesId, setSeriesId] = useState<string>('');
-  const [seriesList, setSeriesList] = useState<{ id: string; name: string }[]>([]);
+  const [seriesList, setSeriesList] = useState<{ id: string; name: string; theme_id?: string | null }[]>([]);
   const [tags, setTags] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [themeId, setThemeId] = useState('');
-  const [themeList, setThemeList] = useState<{ id: string; name: string }[]>([]);
+  const [themeList, setThemeList] = useState<(Theme & { status: string })[]>([]);
   const [songTitle, setSongTitle] = useState('');
   const [songUrl, setSongUrl] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
@@ -128,16 +129,28 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasBody = body.trim().length > 0;
-  const preview = useMemo(() => body.slice(0, 200), [body]);
+
+  const previewTheme = useMemo(() => {
+    if (themeId) return themeList.find(t => t.id === themeId) ?? null;
+    const ser = seriesList.find(s => s.id === seriesId);
+    if (ser?.theme_id) return themeList.find(t => t.id === ser.theme_id) ?? null;
+    return null;
+  }, [themeId, seriesId, themeList, seriesList]);
+
+  const previewSeriesName = useMemo(() => seriesList.find(s => s.id === seriesId)?.name ?? '', [seriesId, seriesList]);
+  const previewTags = useMemo(
+    () => tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
+    [tags],
+  );
 
   useEffect(() => {
     if (!configured) return;
     const supabase = createClient();
-    supabase.from('series').select('id, name').order('sort_order', { ascending: true }).then(({ data }) => {
-      setSeriesList((data ?? []) as { id: string; name: string }[]);
+    supabase.from('series').select('id, name, theme_id').order('sort_order', { ascending: true }).then(({ data }) => {
+      setSeriesList((data ?? []) as { id: string; name: string; theme_id?: string | null }[]);
     });
-    supabase.from('themes').select('id, name').eq('status', 'approved').order('created_at', { ascending: true }).then(({ data }) => {
-      setThemeList((data ?? []) as { id: string; name: string }[]);
+    supabase.from('themes').select('*').order('created_at', { ascending: true }).then(({ data }) => {
+      setThemeList((data ?? []) as (Theme & { status: string })[]);
     });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { id: data.user.id, display_name: data.user.user_metadata?.display_name } : null);
@@ -387,7 +400,7 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
                 className="w-full p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
               >
                 <option value="">跟随分级默认版式</option>
-                {themeList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {themeList.filter(t => t.status === 'approved').map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
             <div>
@@ -494,9 +507,36 @@ export default function SubmitEditor({ editId }: { editId?: string }) {
       </div>
 
       <div>
-        <label className="block text-xs tracking-widest text-archive-muted mb-2">实时预览（{preview.length === body.length ? '全文' : '开头 ' + preview.length + ' 字符'}）</label>
-        <div className="bg-archive-paper border border-archive-border p-8 min-h-[400px]">
-          {hasBody ? <Markdown content={body} /> : <p className="text-archive-muted text-sm tracking-widest">填写正文后此处实时预览</p>}
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-xs tracking-widest text-archive-muted">实时预览（与存档页面完全一致，含版式）</label>
+          {previewTheme && (
+            <span className="text-xs tracking-widest text-archive-accent border border-archive-accent/40 px-2 py-1">
+              版式：{previewTheme.name}
+            </span>
+          )}
+        </div>
+        <div
+          className="max-w-4xl mx-auto"
+          style={previewTheme?.bg_image ? { backgroundImage: `url(${previewTheme.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        >
+          {hasBody ? (
+            <PageDoc
+              theme={previewTheme}
+              title={title}
+              slug={slug}
+              type={type}
+              body={body}
+              tags={previewTags}
+              coverUrl={coverUrl}
+              seriesName={previewSeriesName || undefined}
+              authorName={user?.display_name}
+              createdAt={new Date().toISOString()}
+            />
+          ) : (
+            <div className="bg-archive-paper border border-archive-border p-8 min-h-[300px]">
+              <p className="text-archive-muted text-sm tracking-widest">填写标题与正文后，此处实时预览最终页面效果。</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
