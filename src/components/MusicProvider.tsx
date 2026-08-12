@@ -229,6 +229,24 @@ export default function MusicProvider() {
   const prevPetiaCountRef = useRef<number | null>(null);
   const armedIdRef = useRef<string | null>(null);
 
+  function readSeenUnlocks(): string[] {
+    try {
+      return JSON.parse(window.localStorage.getItem('krt-unlock-seen') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  function markSeenUnlock(url: string) {
+    try {
+      const seen = readSeenUnlocks();
+      if (!seen.includes(url)) {
+        seen.push(url);
+        window.localStorage.setItem('krt-unlock-seen', JSON.stringify(seen));
+      }
+    } catch { /* 忽略 */ }
+  }
+
   async function fetchCelebration(songTitle: string): Promise<string> {
     try {
       const r = await fetch('/api/chat/bot/unlock', {
@@ -257,7 +275,8 @@ export default function MusicProvider() {
         (s.unlock_goal || 0) > prev &&
         (s.unlock_goal || 0) <= petiaCount,
       );
-      if (song) {
+      if (song && !readSeenUnlocks().includes(song.url)) {
+        markSeenUnlock(song.url);
         setLocked(true);
         setShuffle(false);
         setLoopOne(false);
