@@ -5,6 +5,7 @@ export const INTENTS_GROUP_AND_C2C = 1 << 25; // GROUP_AND_C2C_EVENT
 
 export interface BotMessage {
   type: 'group' | 'c2c';
+  at: boolean;
   groupOpenid?: string;
   memberOpenid?: string;
   userOpenid?: string;
@@ -59,13 +60,14 @@ export async function runGateway(opts: GatewayOptions): Promise<void> {
       console.log('[krt-qq] 会话已恢复，session', sessionId);
       return;
     }
-    if (t === 'GROUP_AT_MESSAGE_CREATE' || t === 'C2C_MESSAGE_CREATE') {
+    if (t === 'GROUP_AT_MESSAGE_CREATE' || t === 'GROUP_MESSAGE_CREATE' || t === 'C2C_MESSAGE_CREATE') {
       const content = cleanContent(typeof d?.content === 'string' ? d.content : '');
       const messageId = d?.id;
       if (!content || !messageId) return;
-      if (t === 'GROUP_AT_MESSAGE_CREATE') {
+      if (t !== 'C2C_MESSAGE_CREATE') {
         await opts.onMessage({
           type: 'group',
+          at: t === 'GROUP_AT_MESSAGE_CREATE',
           groupOpenid: d?.group_openid,
           memberOpenid: d?.author?.member_openid,
           messageId,
@@ -74,6 +76,7 @@ export async function runGateway(opts: GatewayOptions): Promise<void> {
       } else {
         await opts.onMessage({
           type: 'c2c',
+          at: false,
           userOpenid: d?.author?.user_openid,
           messageId,
           content,

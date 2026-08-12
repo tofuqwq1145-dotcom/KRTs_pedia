@@ -17,9 +17,16 @@ const HISTORY_MAX = 20;
 const COOLDOWN_MS = 8000;
 const history = new Map<string, HistoryLine[]>();
 const cooldown = new Map<string, number>();
+const seen = new Map<string, number>();
 
 function uidKey(msg: BotMessage): string {
   return msg.type === 'group' ? `g:${msg.groupOpenid}` : `c:${msg.userOpenid}`;
+}
+
+function isSummon(msg: BotMessage): boolean {
+  if (msg.type === 'c2c') return true;
+  if (msg.at) return true;
+  return /站娘|佩蒂娅|SCI-Petia/i.test(msg.content);
 }
 
 function pushHistory(key: string, author: 'user' | 'SCI-Petia', content: string) {
@@ -41,8 +48,14 @@ async function sendReply(msg: BotMessage, reply: string) {
 }
 
 async function onMessage(msg: BotMessage) {
-  const key = uidKey(msg);
+  if (!isSummon(msg)) return;
+
   const now = Date.now();
+  const lastSeen = seen.get(msg.messageId);
+  if (lastSeen && now - lastSeen < 10_000) return;
+  seen.set(msg.messageId, now);
+
+  const key = uidKey(msg);
   const last = cooldown.get(key);
   if (last && now - last < COOLDOWN_MS) return;
   cooldown.set(key, now);
@@ -50,7 +63,7 @@ async function onMessage(msg: BotMessage) {
   pushHistory(key, 'user', msg.content);
   const lines = history.get(key) ?? [];
 
-  console.log(`[krt-qq] ${msg.type === 'group' ? '群' : '单聊'}:`, msg.content.slice(0, 60));
+  console.log(`[krt-qq] ${msg.type === 'group' ? (msg.at ? '群@' : '群喊名') : '单聊'}:`, msg.content.slice(0, 60));
   const reply = await chatWithPetia(lines, msg.content);
   console.log('[krt-qq] 回复:', reply ? reply.slice(0, 80) : '(空)');
 
