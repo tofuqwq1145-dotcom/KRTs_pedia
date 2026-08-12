@@ -167,7 +167,7 @@ export async function POST() {
         { role: 'user', content: latest.content },
         { role: 'user', content: `当前档案库真实快照（涉及本站数据的回答只能引用这些真实数字与标题，绝对不要编造不存在的馆藏、文献、纸张、战地记录等细节）：\n${snapshot}` },
         { role: 'user', content: `若你要调用 record_entry，可选的已过审版式(id)：${themeOpts}；可选的系列(id)：${seriesOpts}。theme_id 和 series_id 都可以为 null。` },
-        { role: 'user', content: `若用户想设计/提交新版式，调用 submit_theme，只需填 name/slug 及想要的配色字体等文字参数，不需要图片。` },
+        { role: 'user', content: `当用户明确让你「上传/提交/做一个版式（主题）」时，请立刻调用 submit_theme，版式是纯文字参数、不需要任何图片。若用户没给出具体配色/字体，就把没提到的字段用默认值补齐（主色 accent=#8a5a2b、辅色 accent_soft=#a58050、底纸 bg=#f7f3ec、头图渐变 #1a1a1a→#3a3a3a、风格 modern、无动效）；name 用用户提到的主题名，若确实没提到就用简短的中文名；slug 用英文小写连字符。` },
       ];
 
       let replyText = '';
@@ -198,7 +198,7 @@ export async function POST() {
         const message = data?.choices?.[0]?.message;
         const text = typeof message?.content === 'string' ? message.content : '';
         const calls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
-        console.log('[petia-bot] reply len', text.length, '| tool_calls', calls.length, '| tools', calls.map((c: any) => c?.function?.name).join(',') || 'none');
+        console.log('[petia-bot] reply len', text.length, '| finish', message?.finish_reason, '| tool_calls', calls.length, '| tools', calls.map((c: any) => c?.function?.name).join(',') || 'none', '| args', calls.map((c: any) => (c?.function?.arguments || '').slice(0, 120)).join(' / '));
 
         const recordCall = calls.find((c: any) => c?.function?.name === 'record_entry');
         const themeCall = calls.find((c: any) => c?.function?.name === 'submit_theme');
@@ -327,7 +327,13 @@ export async function POST() {
           content = `${content} [mascot:${pickMood()}]`.trim();
         }
       } else {
-        console.log('[petia-bot] empty reply, falling back to sticker');
+        console.log('[petia-bot] empty reply, fallback message by context');
+        const q = latest.content;
+        if (/版式|主题|设计|上传|提交|配色|字体|头图/.test(q)) {
+          content = '嗯，要提交版式的话，把设计想法告诉我吧：版式名称、主色/底纸/文字配色、字体、头图风格。拿不准的地方我就用默认值补齐。';
+        } else {
+          content = `[mascot:${pickMood()}]`;
+        }
       }
     } catch (e) {
       console.error('[petia-bot] deepseek error', e);
