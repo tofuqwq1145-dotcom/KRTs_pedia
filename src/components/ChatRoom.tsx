@@ -122,7 +122,7 @@ export default function ChatRoom() {
       });
       if (error) throw new Error(error.message);
       setText('');
-      const mentioned = content.toUpperCase().includes('@SCI-PETIA') || content.includes('@站娘');
+      const mentioned = content.toUpperCase().includes('@SCI-PETIA') || content.includes('@站娘') || content.includes('@佩蒂娅');
       if (botOn && mentioned) {
         try {
           const r = await fetch('/api/chat/bot', { method: 'POST' });
@@ -186,7 +186,7 @@ export default function ChatRoom() {
               </button>
             ))}
             <span className="shrink-0 text-[10px] text-archive-muted tracking-widest">点击插入站娘表情</span>
-            <label className="shrink-0 flex items-center gap-1.5 pl-3 ml-2 border-l border-archive-border text-[11px] text-archive-muted tracking-widest cursor-pointer select-none" title="开启后，你 @站娘 或 @SCI-Petia 时她会用 DeepSeek 应答">
+            <label className="shrink-0 flex items-center gap-1.5 pl-3 ml-2 border-l border-archive-border text-[11px] text-archive-muted tracking-widest cursor-pointer select-none" title="开启后，你 @站娘 / @SCI-Petia / @佩蒂娅 时她会用 DeepSeek 应答">
               <input type="checkbox" checked={botOn} onChange={e => {
                 const v = e.target.checked;
                 setBotOn(v);
@@ -202,7 +202,7 @@ export default function ChatRoom() {
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) onSend(); }}
-              placeholder="输入消息，Enter 发送…（@站娘 或 @SCI-Petia 召唤她应答）"
+              placeholder="输入消息，Enter 发送…（@站娘 / @SCI-Petia / @佩蒂娅 召唤她应答）"
               maxLength={1000}
               className="flex-1 p-4 border border-archive-border bg-archive-paper outline-none focus:border-archive-accent transition-colors text-sm tracking-widest"
             />
