@@ -37,3 +37,4 @@ next-env.d.ts
 /qq-bot/.env
 /qq-bot/node_modules/
 /qq-bot/logs/
+/qq-bot/*.log

@@ -93,7 +93,22 @@ const SEARCH_TOOL = {
   },
 } as const;
 
-const TOOLS = [RECORD_TOOL, THEME_TOOL, SEARCH_TOOL];
+const WEB_SEARCH_TOOL = {
+  type: 'function',
+  function: {
+    name: 'web_search',
+    description: '当用户询问档案库以外的信息、时事新闻、外网内容，或需要联网查证实时资料时，调用此函数用 Bing 联网搜索，返回网页标题、链接与摘要。',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: '搜索关键词，简洁准确' },
+      },
+      required: ['query'],
+    },
+  },
+} as const;
+
+const TOOLS = [RECORD_TOOL, THEME_TOOL, SEARCH_TOOL, WEB_SEARCH_TOOL];
 
 async function searchArchive(query: string): Promise<string> {
   const q = (query || '').trim();
@@ -110,6 +125,36 @@ async function searchArchive(query: string): Promise<string> {
   return data.map((p) => `- ${p.title}（${p.type}） ${site}/pages/${p.slug}`).join('\n');
 }
 
+const SEARCH_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+
+async function webSearch(query: string): Promise<string> {
+  const q = (query || '').trim();
+  if (!q) return '搜索关键词为空。';
+  try {
+    const res = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=zh-hans&mkt=zh-CN`, {
+      headers: { 'User-Agent': SEARCH_UA, 'Accept-Language': 'zh-CN,zh;q=0.9' },
+    });
+    if (!res.ok) return `联网搜索失败（HTTP ${res.status}）。`;
+    const html = await res.text();
+    const blocks = html.match(/<li class="b_algo"[\s\S]*?<\/li>/g) ?? [];
+    const out: string[] = [];
+    for (const b of blocks.slice(0, 5)) {
+      const h2 = b.match(/<h2[^>]*>[\s\S]*?<\/h2>/)?.[0] ?? '';
+      const title = h2.replace(/<[^>]+>/g, '').trim();
+      const url = h2.match(/href="([^"]+)"/)?.[1] ?? '';
+      const snip = (b.match(/<p[^>]*>[\s\S]*?<\/p>/)?.[0] ?? '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&#\d+;/g, '')
+        .replace(/&[a-z]+;/g, ' ')
+        .trim();
+      if (title || url) out.push(`- ${title}\n  链接：${url}\n  摘要：${snip}`);
+    }
+    return out.length ? out.join('\n') : '搜索没有返回结果。';
+  } catch (e) {
+    return `联网搜索出错：${(e as Error).message}`;
+  }
+}
+
 export interface HistoryLine {
   author: string;
   content: string;
@@ -117,7 +162,7 @@ export interface HistoryLine {
 
 export async function chatWithPetia(history: HistoryLine[], latest: string): Promise<string> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) return '……站娘暂时休眠了（缺 API 密钥）。';
+  if (!apiKey) return '……佩蒂娅暂时休眠了（缺 API 密钥）。';
 
   const supabase = readClient();
   const [{ data: themeRows }, { data: seriesRows }, { data: pageRows }, { data: recentRows }, { count: chatCount }, { count: seriesCount }] = await Promise.all([
@@ -157,11 +202,11 @@ export async function chatWithPetia(history: HistoryLine[], latest: string): Pro
     { role: 'user', content: `当前档案库真实快照（涉及本站数据的回答只能引用这些真实数字与标题，绝对不要编造不存在的馆藏、文献、纸张、战地记录等细节）：\n${snapshot}` },
     { role: 'user', content: `若你要调用 record_entry，可选的已过审版式(id)：${themeOpts}；可选的系列(id)：${seriesOpts}。theme_id 和 series_id 都可以为 null。` },
     { role: 'user', content: '当用户明确让你「上传/提交/做一个版式（主题）」时，请立刻调用 submit_theme，版式是纯文字参数、不需要任何图片。若用户没给出具体配色/字体，就把没提到的字段用默认值补齐（主色 accent=#8a5a2b、辅色 accent_soft=#a58050、底纸 bg=#f7f3ec、头图渐变 #1a1a1a→#3a3a3a、风格 modern、无动效）；name 用用户提到的主题名，若确实没提到就用简短的中文名；slug 用英文小写连字符。' },
+    { role: 'user', content: '联网搜索判断规则（重要）：当用户问的是现实世界的时事、新闻、当下正在发生的大事、天气，或任何档案库之外需要实时查证的信息——尤其提到「今天/最近/现在有什么大事」「新闻」这类词，且不是在问 KRT 世界时——必须立即调用 web_search 联网搜索后再回答；不要只依赖档案库回答，也不要因为档案库没有记录就回答「没有」。只有当用户明确在问 KRT 世界/本站档案内容时，才用 search_archive 查档案库，并在回答时事类问题时明确区分「这是档案记录」与「这是网上查到的」。' },
   ];
 
   try {
     let replyText = '';
-    let retries = 0;
 
     for (;;) {
       const res = await fetch('https://api.deepseek.com/chat/completions', {
@@ -190,140 +235,145 @@ export async function chatWithPetia(history: HistoryLine[], latest: string): Pro
       const calls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
       console.log('[krt-qq] reply len', text.length, '| finish', message?.finish_reason, '| tools', calls.map((c: any) => c?.function?.name).join(',') || 'none');
 
-      const recordCall = calls.find((c: any) => c?.function?.name === 'record_entry');
-      const themeCall = calls.find((c: any) => c?.function?.name === 'submit_theme');
-      const searchCall = calls.find((c: any) => c?.function?.name === 'search_archive');
+      const callList = calls as Array<{ id: string; function?: { name?: string; arguments?: string } }>;
 
-      if (searchCall) {
-        const args = parseArgs(searchCall.function?.arguments);
-        const result = await searchArchive((args.query as string) ?? '');
-        baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
-        baseMessages.push({ role: 'tool', tool_call_id: searchCall.id, content: result });
-        continue;
-      }
+      if (callList.length > 0) {
+        const toolResponses: { id: string; content: string }[] = [];
 
-      if (recordCall) {
-        const args = parseArgs(recordCall.function?.arguments);
-        const title = ((args.title as string) ?? '').trim();
-        const slug = normalizeSlug(args.slug as string);
-        const type = ALLOWED_TYPES.includes(args.type as PageType) ? (args.type as PageType) : 'article';
-        const body = ((args.body as string) ?? '').trim();
+        for (const call of callList) {
+          const fnName = call?.function?.name ?? '';
+          const args = parseArgs(call?.function?.arguments ?? '{}');
 
-        if (!(title && slug && body)) {
-          if (retries >= 1) { replyText = text || '这个好像没整理好……你再说一遍，我重新记？'; break; }
-          baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
-          baseMessages.push({ role: 'tool', tool_call_id: recordCall.id, content: '缺少必填参数：title（标题）、body（正文）、slug（英文小写连字符标识）。请补全后重新调用 record_entry。' });
-          retries++;
-          continue;
-        }
+          if (fnName === 'search_archive') {
+            toolResponses.push({ id: call.id, content: await searchArchive(String(args.query ?? '')) });
+            continue;
+          }
 
-        const session = await petiaSession();
-        if (!session) {
-          baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
-          baseMessages.push({ role: 'tool', tool_call_id: recordCall.id, content: '当前环境没有档案写入权限（站娘账号未配置），无法直接写入。请诚实地告诉用户暂时无法代录，建议到网站 /submit 提交。' });
-          retries++;
-          continue;
-        }
+          if (fnName === 'web_search') {
+            toolResponses.push({ id: call.id, content: await webSearch(String(args.query ?? '')) });
+            continue;
+          }
 
-        const themeId = (themeRows ?? []).some((t) => t.id === args.theme_id) ? args.theme_id : null;
-        const seriesId = (seriesRows ?? []).some((s) => s.id === args.series_id) ? args.series_id : null;
+          if (fnName === 'record_entry') {
+            const title = ((args.title as string) ?? '').trim();
+            const slug = normalizeSlug(args.slug as string);
+            const type = ALLOWED_TYPES.includes(args.type as PageType) ? (args.type as PageType) : 'article';
+            const body = ((args.body as string) ?? '').trim();
 
-        const { error: insertError } = await session.client.from('pages').insert({
-          slug,
-          title,
-          type,
-          body,
-          status: 'pending',
-          source: 'petia',
-          author_id: session.userId,
-          author_name: 'SCI-Petia',
-          tags: [],
-          cover_url: '',
-          series_id: seriesId,
-          theme_id: themeId,
-          song_title: '',
-          song_url: '',
-        });
+            if (!(title && slug && body)) {
+              toolResponses.push({ id: call.id, content: '缺少必填参数：title（标题）、body（正文）、slug（英文小写连字符标识）。请补全后重新调用 record_entry。' });
+              continue;
+            }
 
-        if (!insertError) {
-          replyText = `${text} 已记入档案，等待站长审核。`;
-        } else if (insertError.code === '23505') {
-          replyText = `${text} 这个条目标识好像已存在了……我需要换个方式记录它。`;
-        } else {
-          replyText = `${text} 啊，档案写入出了一点小故障，稍后再试。`;
-        }
-        break;
-      }
+            const session = await petiaSession();
+            if (!session) {
+              toolResponses.push({ id: call.id, content: '当前环境没有档案写入权限（写入账号未配置），无法直接写入。请诚实地告诉用户暂时无法代录，建议到网站 /submit 提交。' });
+              continue;
+            }
 
-      if (themeCall) {
-        const args = parseArgs(themeCall.function?.arguments);
-        const name = ((args.name as string) ?? '').trim();
-        const slug = normalizeSlug(args.slug as string);
-        const slogan = ((args.slogan as string) ?? '').trim();
-        const titleFont = pick(FONT_KEYS, args.title_font as string, '');
-        const bodyFont = pick(FONT_KEYS, args.body_font as string, '');
-        const headerStyle = pick(HEADER_STYLES, args.header_style as string, 'none');
-        const animation = pick(ANIMATIONS, args.header_animation as string, 'none');
+            const themeId = (themeRows ?? []).some((t) => t.id === args.theme_id) ? args.theme_id : null;
+            const seriesId = (seriesRows ?? []).some((s) => s.id === args.series_id) ? args.series_id : null;
 
-        if (!name) {
-          if (retries >= 1) { replyText = text || '啊，版式参数好像没整理全……再说一遍设计想法我重新记？'; break; }
-          baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
-          baseMessages.push({ role: 'tool', tool_call_id: themeCall.id, content: '缺少必填参数 name（版式名称）。请补全 name，slug 用英文小写连字符（可基于 name 生成），重新调用 submit_theme。' });
-          retries++;
-          continue;
-        }
-
-        const colors = {
-          accent: (args.accent as string) || '#8a5a2b',
-          accent_soft: (args.accent_soft as string) || '#a58050',
-          bg: (args.bg as string) || '#f7f3ec',
-          title_color: (args.title_color as string) || '',
-          body_color: (args.body_color as string) || '',
-          header_from: (args.header_from as string) || '#1a1a1a',
-          header_to: (args.header_to as string) || '#3a3a3a',
-        };
-        const validColors = Object.values(colors).every((v) => isColor(v || undefined));
-
-        const session = await petiaSession();
-        if (!session) {
-          baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
-          baseMessages.push({ role: 'tool', tool_call_id: themeCall.id, content: '当前环境没有版式写入权限（站娘账号未配置），无法直接写入。请诚实地告诉用户暂时无法代提交，建议到网站提交。' });
-          retries++;
-          continue;
-        }
-
-        const insertRes = validColors
-          ? await session.client.from('themes').insert({
-              name,
+            const { error: insertError } = await session.client.from('pages').insert({
               slug,
-              slogan,
-              accent: colors.accent,
-              accent_soft: colors.accent_soft,
-              bg: colors.bg,
-              style: pick(THEME_STYLES, args.style as string, 'modern'),
-              title_color: colors.title_color || null,
-              body_color: colors.body_color || null,
-              title_font: titleFont || null,
-              body_font: bodyFont || null,
-              header_style: headerStyle,
-              header_from: colors.header_from,
-              header_to: colors.header_to,
-              header_animation: animation,
-              logo_url: '',
-              bg_image: '',
+              title,
+              type,
+              body,
               status: 'pending',
+              source: 'petia',
               author_id: session.userId,
-            })
-          : { error: { code: '400', message: '颜色格式不合法' } };
+              author_name: 'SCI-Petia',
+              tags: [],
+              cover_url: '',
+              series_id: seriesId,
+              theme_id: themeId,
+              song_title: '',
+              song_url: '',
+            });
 
-        if (!insertRes.error) {
-          replyText = `${text} 版式已提交，等待站长审核。`;
-        } else if (insertRes.error.code === '23505') {
-          replyText = `${text} 这个版式标识好像已存在了……换个 slug 试试。`;
-        } else {
-          replyText = `${text} 啊，版式写入出了一点小故障，稍后再试。`;
+            if (!insertError) {
+              toolResponses.push({ id: call.id, content: '词条已成功写入档案库，状态为待审核（等待站长审核）。' });
+            } else if (insertError.code === '23505') {
+              toolResponses.push({ id: call.id, content: '写入失败：该条目标识已存在（重复），请换个 slug。' });
+            } else {
+              toolResponses.push({ id: call.id, content: `写入失败：${insertError.message}` });
+            }
+            continue;
+          }
+
+          if (fnName === 'submit_theme') {
+            const name = ((args.name as string) ?? '').trim();
+            const slug = normalizeSlug(args.slug as string);
+            const slogan = ((args.slogan as string) ?? '').trim();
+            const titleFont = pick(FONT_KEYS, args.title_font as string, '');
+            const bodyFont = pick(FONT_KEYS, args.body_font as string, '');
+            const headerStyle = pick(HEADER_STYLES, args.header_style as string, 'none');
+            const animation = pick(ANIMATIONS, args.header_animation as string, 'none');
+
+            if (!name) {
+              toolResponses.push({ id: call.id, content: '缺少必填参数 name（版式名称）。请补全 name，slug 用英文小写连字符（可基于 name 生成），重新调用 submit_theme。' });
+              continue;
+            }
+
+            const colors = {
+              accent: (args.accent as string) || '#8a5a2b',
+              accent_soft: (args.accent_soft as string) || '#a58050',
+              bg: (args.bg as string) || '#f7f3ec',
+              title_color: (args.title_color as string) || '',
+              body_color: (args.body_color as string) || '',
+              header_from: (args.header_from as string) || '#1a1a1a',
+              header_to: (args.header_to as string) || '#3a3a3a',
+            };
+            const validColors = Object.values(colors).every((v) => isColor(v || undefined));
+
+            const session = await petiaSession();
+            if (!session) {
+              toolResponses.push({ id: call.id, content: '当前环境没有版式写入权限（写入账号未配置），无法直接写入。请诚实地告诉用户暂时无法代提交，建议到网站提交。' });
+              continue;
+            }
+
+            const insertRes = validColors
+              ? await session.client.from('themes').insert({
+                  name,
+                  slug,
+                  slogan,
+                  accent: colors.accent,
+                  accent_soft: colors.accent_soft,
+                  bg: colors.bg,
+                  style: pick(THEME_STYLES, args.style as string, 'modern'),
+                  title_color: colors.title_color || null,
+                  body_color: colors.body_color || null,
+                  title_font: titleFont || null,
+                  body_font: bodyFont || null,
+                  header_style: headerStyle,
+                  header_from: colors.header_from,
+                  header_to: colors.header_to,
+                  header_animation: animation,
+                  logo_url: '',
+                  bg_image: '',
+                  status: 'pending',
+                  author_id: session.userId,
+                })
+              : { error: { code: '400', message: '颜色格式不合法' } };
+
+            if (!insertRes.error) {
+              toolResponses.push({ id: call.id, content: '版式已成功写入档案库，状态为待审核（等待站长审核）。' });
+            } else if (insertRes.error.code === '23505') {
+              toolResponses.push({ id: call.id, content: '写入失败：该版式标识已存在（重复），请换个 slug。' });
+            } else {
+              toolResponses.push({ id: call.id, content: `写入失败：${insertRes.error.message}` });
+            }
+            continue;
+          }
+
+          toolResponses.push({ id: call.id, content: '该工具暂不可用。' });
         }
-        break;
+
+        baseMessages.push({ role: 'assistant', content: text, tool_calls: message?.tool_calls ?? [] });
+        for (const r of toolResponses) {
+          baseMessages.push({ role: 'tool', tool_call_id: r.id, content: r.content });
+        }
+        continue;
       }
 
       replyText = text;
