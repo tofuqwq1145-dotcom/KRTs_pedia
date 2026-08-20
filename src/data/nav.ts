@@ -4,8 +4,9 @@ export interface NavGroup { label: string; items: NavItem[] }
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: '档案',
+    label: '世界',
     items: [
+      { name: '世界地图', path: '/world' },
       { name: '国家', path: '/nations' },
       { name: '人物', path: '/people' },
       { name: '战争', path: '/wars' },

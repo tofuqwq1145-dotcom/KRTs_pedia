@@ -706,6 +706,8 @@ export default function MusicProvider() {
   const rowCls = (active: boolean) =>
     `w-full flex items-center gap-3 px-4 py-1.5 text-left text-xs transition-colors ${active ? 'bg-[#7FB8E4]/10 text-[#7FB8E4]' : 'text-[#d6cbb4] hover:bg-[#7FB8E4]/10 hover:text-[#7FB8E4]'}`;
 
+  if (pathname.startsWith('/world')) return null;
+
   return (
     <>
       {celebrate && (

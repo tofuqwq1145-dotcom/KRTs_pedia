@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { TYPE_LABELS } from '@/lib/labels';
 import type { PageSummary } from '@/data/types';
 
-export default function SearchResults({ items }: { items: PageSummary[] }) {
-  const [query, setQuery] = useState('');
+export default function SearchResults({ items, initialQuery = '' }: { items: PageSummary[]; initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return [];
